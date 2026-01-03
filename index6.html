@@ -8,57 +8,62 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.98); }
+        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.9); }
+        
+        /* 1. 找回大師的大背景 */
         body { 
             margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; font-family: sans-serif; background-color: #1a1a1a;
-            background-image: url('background.jpg'); background-size: cover; background-position: center;
+            min-height: 100vh; font-family: sans-serif;
+            background-image: url('background.jpg'); /* 確保圖片名稱正確 */
+            background-size: cover; background-position: center;
+            background-attachment: fixed; overflow: hidden;
         }
         
-        /* 基礎卡片樣式 */
+        /* 2. 卡片設為半透明毛玻璃，讓背景透出來 */
         .card { 
             background: var(--white-glass); border-radius: 30px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 90%; max-width: 400px; 
-            min-height: 450px; position: relative; overflow: hidden; 
-            display: flex; flex-direction: column; backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2); width: 85%; max-width: 400px; 
+            height: 520px; position: relative; overflow: hidden; 
+            display: flex; flex-direction: column; 
+            backdrop-filter: blur(10px); /* 毛玻璃效果 */
+            z-index: 10;
         }
 
         .step { 
-            padding: 30px; width: 100%; box-sizing: border-box;
+            padding: 25px; width: 100%; box-sizing: border-box;
             position: absolute; top: 0; left: 0; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease, transform 0.8s ease; /* 柔和轉場 */
+            transition: opacity 0.6s ease, transform 0.6s ease;
         }
 
-        .hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
-        .visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+        .visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
-        /* 相機容器 */
         .video-container { 
-            width: 100%; height: 250px; background: #000; border-radius: 20px; 
+            width: 100%; height: 280px; background: #000; border-radius: 20px; 
             overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px;
         }
-        video, canvas { width: 100%; height: 100%; object-fit: cover; }
+        video { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-gold { 
-            background: var(--gold); color: white; border: none; padding: 15px 40px; 
+            background: var(--gold); color: white; border: none; padding: 14px 40px; 
             border-radius: 30px; cursor: pointer; width: 100%; font-size: 1.1rem; 
             font-weight: bold; transition: 0.3s;
         }
+        .btn-gold:active { transform: scale(0.95); }
 
-        /* 拍照閃光 */
         #flash { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: white; opacity: 0; pointer-events: none; z-index: 100;
         }
-        .flash-active { animation: flashAnim 0.5s ease-out; }
+        .flash-active { animation: flashAnim 0.4s ease-out; }
         @keyframes flashAnim { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
         .question { width: 100%; margin-bottom: 15px; text-align: left; }
         label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 8px; }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; outline: none; }
+        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; background: white; }
 
-        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 99999; animation: fly 1s forwards; }
+        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 99999; animation: fly 1s forwards; box-shadow: 0 0 10px var(--gold); }
         @keyframes fly { 0% { opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
     </style>
 </head>
@@ -69,7 +74,7 @@
 
     <div id="step-0" class="step visible">
         <h2 style="color: var(--gold);">開始檢測</h2>
-        <p style="text-align:center; color:#666; line-height:1.6;">點擊按鈕後將請求相機權限<br>以進行即時 AI 肌膚掃描</p>
+        <p style="text-align:center; color:#555; line-height:1.6;">點擊按鈕後將請求相機權限<br>以進行即時 AI 肌膚掃描</p>
         <button class="btn-gold" onclick="grantAndStart()">同意並開啟相機</button>
     </div>
 
@@ -82,10 +87,10 @@
     </div>
 
     <div id="step-2" class="step hidden">
-        <h2 style="color: var(--gold); margin-bottom:20px;">AI 分析中</h2>
+        <h2 style="color: var(--gold); margin-bottom:15px;">AI 分析中</h2>
         <div class="question">
             <label>您的膚質類型</label>
-            <select id="user-skin"><option>乾性</option><option>油性</option><option>混合</option></select>
+            <select id="user-skin"><option>乾性</option><option>油性</option><option>混合性</option></select>
         </div>
         <div class="question">
             <label>年齡區間</label>
@@ -96,7 +101,7 @@
 
     <div id="step-3" class="step hidden">
         <h2 style="color:var(--gold);">檢測報告</h2>
-        <div id="report-content" style="text-align:left; line-height: 1.8; color:#444;"></div>
+        <div id="report-content" style="text-align:left; line-height: 1.8; color:#333; font-size: 0.95rem;"></div>
         <button class="btn-gold" onclick="location.reload()" style="margin-top:20px;">重新檢測</button>
     </div>
 </div>
@@ -111,28 +116,21 @@
         if (liff.isLoggedIn()) liff.getProfile().then(p => { userProfile = p; });
     });
 
-    // 解決兩次彈窗：由點擊事件觸發請求
     async function grantAndStart() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             video.srcObject = stream;
             video.play();
-            
-            // 轉場：第一層淡出，第二層淡入
             switchStep('step-0', 'step-1');
         } catch (e) {
             alert("請允許相機權限以使用此功能");
         }
     }
 
-    // 拍照閃光 + 優雅轉場
     function captureEffect() {
-        const flash = document.getElementById('flash');
-        flash.classList.add('flash-active');
-        
+        document.getElementById('flash').classList.add('flash-active');
         setTimeout(() => {
-            flash.classList.remove('flash-active');
-            // 轉場：第二層淡出，第三層淡入
+            document.getElementById('flash').classList.remove('flash-active');
             switchStep('step-1', 'step-2');
         }, 300);
     }
@@ -143,20 +141,20 @@
             <b>👑 您好，${userProfile.displayName}</b><br>
             ✨ 水玉光得分：${score} 分<br>
             🧬 膚質狀態：${document.getElementById('user-skin').value}<br>
-            💡 建議：您的肌膚狀況非常優異，請維持目前的高品質保養習慣。
+            💡 建議：您的肌膚保水度優異，建議維持目前的高品質保養習慣。
         `;
         switchStep('step-2', 'step-3');
     }
 
-    // 通用淡入淡出函數
     function switchStep(outId, inId) {
-        document.getElementById(outId).classList.replace('visible', 'hidden');
+        const outStep = document.getElementById(outId);
+        const inStep = document.getElementById(inId);
+        outStep.classList.replace('visible', 'hidden');
         setTimeout(() => {
-            document.getElementById(inId).classList.replace('hidden', 'visible');
-        }, 100); // 稍微錯開，避免重疊殘影
+            inStep.classList.replace('hidden', 'visible');
+        }, 150);
     }
 
-    // 金粉特效
     document.addEventListener('mousemove', e => spawn(e));
     document.addEventListener('touchmove', e => spawn(e.touches[0]), {passive: true});
     function spawn(e) {
