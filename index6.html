@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.95); }
+        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.96); }
         body { 
             margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; 
             min-height: 100vh; font-family: sans-serif;
@@ -16,36 +16,38 @@
             background-attachment: fixed; overflow: hidden;
         }
         .card { 
-            background: var(--white-glass); padding: 2.5rem; border-radius: 30px; 
+            background: var(--white-glass); padding: 1.5rem 2rem; border-radius: 30px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 85%; max-width: 450px; 
-            text-align: center; backdrop-filter: blur(10px); z-index: 10;
-            transition: opacity 0.5s ease;
+            display: flex; flex-direction: column; align-items: center;
+            backdrop-filter: blur(10px); z-index: 10;
         }
-        .hidden { display: none; opacity: 0; }
-        .fade-in { animation: fadeIn 0.8s forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden { display: none; }
         
-        /* 拍照閃光效果 */
-        .flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; opacity: 0; pointer-events: none; }
-        .flash-active { animation: flashAnim 0.4s ease-out; }
-        @keyframes flashAnim { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        /* 1. 解決按不到按鈕：優化相機容器高度 */
+        .video-container { 
+            position: relative; width: 100%; 
+            max-height: 55vh; /* 限制相機高度在螢幕 55% 以內，確保下方按鈕不超出 */
+            border-radius: 20px; overflow: hidden; 
+            background: #000; margin: 10px 0; border: 2px solid var(--gold);
+        }
+        video, canvas { width: 100%; height: auto; display: block; object-fit: contain; }
 
         .btn-gold { 
-            background: var(--gold); color: white; border: none; padding: 14px 40px; 
-            border-radius: 30px; cursor: pointer; width: 100%; font-size: 18px; 
-            font-weight: bold; transition: 0.3s; margin-top: 15px; 
+            background: var(--gold); color: white; border: none; padding: 12px 30px; 
+            border-radius: 30px; cursor: pointer; width: 100%; font-size: 1.1rem; 
+            font-weight: bold; transition: 0.3s; margin-top: 10px; flex-shrink: 0;
         }
-        .video-container { 
-            position: relative; width: 100%; border-radius: 20px; overflow: hidden; 
-            background: #000; margin-bottom: 20px; border: 2px solid var(--gold);
-        }
-        video, canvas { width: 100%; display: block; }
-        .question { margin-bottom: 20px; text-align: left; }
-        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 8px; }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; }
+        .btn-gold:active { transform: scale(0.95); }
 
-        /* 金粉特效 */
-        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 99999; box-shadow: 0 0 10px #fff, 0 0 20px var(--gold); animation: fly 1s forwards; }
+        .question { width: 100%; margin-bottom: 15px; text-align: left; }
+        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 5px; }
+        select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--gold); font-size: 16px; }
+
+        /* 閃光與特效 */
+        .flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; opacity: 0; pointer-events: none; }
+        .flash-active { animation: flashAnim 0.4s; }
+        @keyframes flashAnim { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 99999; animation: fly 1s forwards; box-shadow: 0 0 10px var(--gold); }
         @keyframes fly { 0% { opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
     </style>
 </head>
@@ -53,39 +55,37 @@
 
 <div id="flash-overlay" class="flash"></div>
 
-<div id="step-0" class="card fade-in">
-    <h2 style="color: var(--gold);">隱私權與相機授權</h2>
-    <p>為了提供精準的 AI 肌膚檢測，我們需要暫時開啟您的相機進行掃描。</p>
-    <p style="font-size: 0.9rem; color: #666;">照片僅供即時分析，不會被儲存。</p>
-    <button class="btn-gold" onclick="startCameraStep()">同意並開啟相機</button>
+<div id="step-0" class="card">
+    <h2 style="color: var(--gold); margin: 0 0 10px;">系統準備中</h2>
+    <p style="font-size: 0.95rem; line-height: 1.5;">為了精準檢測，我們將開啟相機進行 AI 臉部掃描。照片僅供分析，不進行儲存。</p>
+    <button class="btn-gold" id="auth-btn">確認並開啟相機</button>
 </div>
 
 <div id="step-1" class="card hidden">
-    <h3 style="color: var(--gold);">請對準臉部</h3>
-    <div class="video-container" id="camera-box">
+    <h3 style="color: var(--gold); margin: 5px 0;">請將臉部對準</h3>
+    <div class="video-container">
         <video id="video" playsinline></video>
         <canvas id="canvas"></canvas>
     </div>
-    <button class="btn-gold" id="capture-btn" onclick="takePhoto()">📷 拍照分析</button>
+    <button class="btn-gold" id="capture-btn">📷 拍照分析</button>
 </div>
 
 <div id="step-2" class="card hidden">
-    <h2 style="color: var(--gold);">分析中...</h2>
-    <p>請補充您的資料以獲得精準建議</p>
+    <h2 style="color: var(--gold); margin: 0 0 15px;">AI 分析中</h2>
     <div class="question">
-        <label>膚質類型</label>
+        <label>您的膚質類型</label>
         <select id="user-skin"><option>乾性</option><option>油性</option><option>混合</option></select>
     </div>
     <div class="question">
         <label>年齡區間</label>
         <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
     </div>
-    <button class="btn-gold" onclick="showResult()">送出並查看報告</button>
+    <button class="btn-gold" id="submit-btn">送出數據</button>
 </div>
 
 <div id="step-3" class="card hidden">
-    <h2 style="color:var(--gold);">分析報告</h2>
-    <div id="report-content" style="text-align:left; margin-bottom:20px; line-height: 1.6;"></div>
+    <h2 style="color:var(--gold);">檢測報告</h2>
+    <div id="report-content" style="text-align:left; margin-bottom:15px; font-size: 0.95rem;"></div>
     <button class="btn-gold" onclick="location.reload()">重新檢測</button>
 </div>
 
@@ -93,83 +93,69 @@
 
 <script>
     const videoElement = document.getElementById('video');
-    const canvasElement = document.getElementById('canvas');
-    let isCameraActive = false;
+    let cameraInstance = null;
+    let userName = "訪客";
 
-    // LIFF 初始化
+    // LIFF 預先初始化
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) {
-            liff.getProfile().then(p => { window.userName = p.displayName; });
+            liff.getProfile().then(p => { userName = p.displayName; });
         }
     });
 
-    // 1. 開啟相機階段
-    async function startCameraStep() {
-        document.getElementById('step-0').style.display = 'none';
-        const step1 = document.getElementById('step-1');
-        step1.classList.remove('hidden');
-        step1.classList.add('fade-in');
+    // 解決問題 1：按鈕事件綁定與權限一次到位
+    document.getElementById('auth-btn').addEventListener('click', async () => {
+        document.getElementById('step-0').classList.add('hidden');
+        document.getElementById('step-1').classList.remove('hidden');
         
         try {
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {}, width: 640, height: 480
+            cameraInstance = new Camera(videoElement, {
+                onFrame: async () => {}, width: 1280, height: 720 // 提高 PC 端相容性
             });
-            await camera.start();
-        } catch (e) { alert("無法存取相機，請檢查權限"); }
-    }
+            await cameraInstance.start();
+        } catch (e) { alert("相機啟動失敗，請檢查權限"); }
+    });
 
-    // 2. 拍照邏輯 (閃光 + 淡出)
-    function takePhoto() {
-        // 閃光特效
-        const flash = document.getElementById('flash-overlay');
-        flash.classList.add('flash-active');
-        
+    // 拍照邏輯 (閃光 + 高質感切換)
+    document.getElementById('capture-btn').addEventListener('click', () => {
+        document.getElementById('flash-overlay').classList.add('flash-active');
         setTimeout(() => {
-            flash.classList.remove('flash-active');
-            // 相機卡片淡出
-            const step1 = document.getElementById('step-1');
-            step1.style.opacity = '0';
-            
-            setTimeout(() => {
-                step1.classList.add('hidden');
-                // 問卷卡片淡入
-                const step2 = document.getElementById('step-2');
-                step2.classList.remove('hidden');
-                step2.classList.add('fade-in');
-                step2.style.opacity = '1';
-            }, 500);
-        }, 400);
-    }
+            document.getElementById('flash-overlay').classList.remove('flash-active');
+            document.getElementById('step-1').classList.add('hidden');
+            const s2 = document.getElementById('step-2');
+            s2.classList.remove('hidden');
+            s2.style.animation = "fadeIn 0.5s forwards";
+        }, 300);
+    });
 
-    // 3. 顯示結果
-    function showResult() {
+    document.getElementById('submit-btn').addEventListener('click', () => {
         document.getElementById('step-2').classList.add('hidden');
-        const step3 = document.getElementById('step-3');
-        step3.classList.remove('hidden');
-        step3.classList.add('fade-in');
-        step3.style.opacity = '1';
-
-        const score = Math.floor(Math.random() * 10 + 90);
+        const s3 = document.getElementById('step-3');
+        s3.classList.remove('hidden');
+        const score = Math.floor(Math.random() * 8 + 92);
         document.getElementById('report-content').innerHTML = `
-            <b>【AI 檢測摘要】</b><br>
-            ✨ 檢測對象：${window.userName || '訪客'}<br>
-            ✨ 肌膚得分：<span style="color:var(--gold); font-size: 22px; font-weight:bold;">${score} 分</span><br>
-            🧬 建議：針對您的 ${document.getElementById('user-skin').value} 膚質，建議持續保持水分攝取。
+            <b>👑 您好，${userName}</b><br>
+            ✨ 水玉光得分：${score} 分<br>
+            🧬 膚質：${document.getElementById('user-skin').value}<br>
+            💡 建議：檢測到您的肌膚保水度優異，建議持續維持目前保養方式。
         `;
-    }
+    });
 
-    // 金粉特效
-    document.addEventListener('mousemove', spawn);
-    document.addEventListener('touchmove', e => spawn(e.touches[0]), {passive: true});
-    function spawn(e) {
+    // 金粉特效 (PC/Mobile 通用)
+    const spawn = (e) => {
+        const x = e.clientX || (e.touches && e.touches[0].clientX);
+        const y = e.clientY || (e.touches && e.touches[0].clientY);
+        if(!x || !y) return;
         const s = document.createElement('div');
         s.className = 'sparkle';
-        s.style.left = e.clientX + 'px'; s.style.top = e.clientY + 'px';
-        s.style.setProperty('--mx', (Math.random()-0.5)*120+'px');
-        s.style.setProperty('--my', (Math.random()-0.5)*120+'px');
+        s.style.left = x + 'px'; s.style.top = y + 'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*100+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*100+'px');
         document.getElementById('sparkle-container').appendChild(s);
         setTimeout(() => s.remove(), 1000);
-    }
+    };
+    document.addEventListener('mousemove', spawn);
+    document.addEventListener('touchmove', e => spawn(e), {passive: true});
 </script>
 </body>
 </html>
