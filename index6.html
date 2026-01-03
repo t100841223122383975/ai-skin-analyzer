@@ -16,7 +16,7 @@
             background-image: url('background.jpg'); 
             background-size: cover; background-position: center; background-attachment: fixed;
             background-color: #fdfaf5;
-            overflow: hidden; /* 防止手機滑動跳動 */
+            overflow: hidden; 
         }
 
         :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.92); }
@@ -25,22 +25,31 @@
             background: var(--white-glass); 
             padding: 2.5rem; border-radius: 30px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-            width: 85%; max-width: 400px; 
+            width: 85%; max-width: 450px; 
             text-align: center; backdrop-filter: blur(8px);
             z-index: 10;
         }
 
         .hidden { display: none; }
-        .question { margin-bottom: 20px; text-align: left; }
-        label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
         
+        /* 修正文字與框框樣式 */
+        .question { margin-bottom: 20px; text-align: left; }
+        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 8px; }
+        
+        select { 
+            width: 100%; padding: 12px; border-radius: 12px; 
+            border: 1px solid var(--gold); /* 框框改回金色 */
+            font-size: 16px; color: #555; outline: none;
+            background-color: white;
+        }
+
         .btn-gold { 
             background: var(--gold); color: white; border: none; 
             padding: 14px 40px; border-radius: 30px; cursor: pointer; 
-            width: 100%; font-size: 16px; font-weight: bold; 
+            width: 100%; font-size: 18px; font-weight: bold; 
             transition: 0.3s; margin-top: 10px; 
         }
-        .btn-gold:active { transform: scale(0.98); background: #b8962d; }
+        .btn-gold:active { transform: scale(0.96); background: #b8962d; }
 
         .video-container { 
             position: relative; width: 100%; border-radius: 20px; 
@@ -53,7 +62,6 @@
         .loading-bar { height: 6px; background: #eee; border-radius: 3px; margin: 15px 0; overflow: hidden; }
         .progress { height: 100%; background: var(--gold); width: 0%; transition: width 0.1s; }
 
-        /* 金粉特效 */
         .sparkle {
             position: fixed; width: 6px; height: 6px;
             background: var(--gold); border-radius: 50%;
@@ -71,12 +79,12 @@
 
 <div class="card">
     <div id="step-survey">
-        <h2 style="color: var(--gold);">肌膚諮詢</h2>
-        <p>您好，<span id="user-name">訪客</span><br>請先填寫您的基礎資料</p>
+        <h2 style="color: var(--gold); margin-bottom: 5px;">肌膚諮詢</h2>
+        <p style="color: #666; margin-bottom: 25px;">您好，<span id="user-name">訪客</span><br>請填寫資料，開始 AI 檢測</p>
         
         <div class="question">
             <label>膚質類型</label>
-            <select id="user-skin" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc;">
+            <select id="user-skin">
                 <option value="乾性">乾性</option>
                 <option value="油性">油性</option>
                 <option value="混合">混合</option>
@@ -85,7 +93,7 @@
 
         <div class="question">
             <label>年齡區間</label>
-            <select id="user-age" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc;">
+            <select id="user-age">
                 <option value="20-30">20-30 歲</option>
                 <option value="31-40">31-40 歲</option>
                 <option value="41+">41 歲以上</option>
@@ -101,12 +109,12 @@
             <video id="video" playsinline></video>
             <canvas id="canvas"></canvas>
         </div>
-        <div id="status-text">請對準鏡頭並保持不動</div>
+        <div id="status-text" style="color: #666;">請對準鏡頭並保持不動</div>
         <div class="loading-bar"><div id="progress" class="progress"></div></div>
         
         <div id="final-result" class="hidden">
             <h2 style="color:var(--gold);">分析報告</h2>
-            <div id="report-content" style="text-align:left; margin-bottom:20px; line-height: 1.6;"></div>
+            <div id="report-content" style="text-align:left; margin-bottom:20px; line-height: 1.6; color: #444;"></div>
             <button class="btn-gold" onclick="location.reload()">重新檢測</button>
         </div>
     </div>
@@ -123,7 +131,6 @@
     const canvasElement = document.getElementById('canvas');
     const canvasCtx = canvasElement.getContext('2d');
 
-    // 1. LIFF 初始化 (修正手機 ID 與環境問題)
     async function initLiff() {
         try {
             await liff.init({ liffId: "2008812290-AidCIwjS" }); 
@@ -133,20 +140,17 @@
             } else {
                 liff.login();
             }
-        } catch (e) { console.log("不在 LINE 環境中"); }
+        } catch (e) { console.log("Liff Init Failed"); }
     }
     initLiff();
 
-    // 2. 金粉特效 (相容手機觸控)
     function createSparkle(e) {
         const x = e.clientX || (e.touches && e.touches[0].clientX);
         const y = e.clientY || (e.touches && e.touches[0].clientY);
         if (!x || !y) return;
-
         const sparkle = document.createElement('div');
         sparkle.className = 'sparkle';
-        sparkle.style.left = x + 'px';
-        sparkle.style.top = y + 'px';
+        sparkle.style.left = x + 'px'; sparkle.style.top = y + 'px';
         const moveX = (Math.random() - 0.5) * 120;
         const moveY = (Math.random() - 0.5) * 120;
         sparkle.style.setProperty('--mx', `${moveX}px`);
@@ -157,7 +161,6 @@
     document.addEventListener('mousemove', createSparkle);
     document.addEventListener('touchmove', createSparkle, { passive: true });
 
-    // 3. 按鈕顯式綁定 (修正手機點擊沒反應)
     document.getElementById('start-analysis-btn').onclick = function() {
         surveyData = {
             skinType: document.getElementById('user-skin').value,
@@ -165,21 +168,18 @@
         };
         document.getElementById('step-survey').classList.add('hidden');
         document.getElementById('step-analysis').classList.remove('hidden');
-        
-        // 啟動相機
         startCamera();
     };
 
-    // 4. FaceMesh 邏輯
     const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
     faceMesh.onResults((results) => {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && isAnalyzing) {
-            progress += 0.8; 
+            progress += 1.2; 
             document.getElementById('progress').style.width = progress + '%';
-            document.getElementById('status-text').innerText = `分析進度: ${Math.floor(progress)}%`;
+            document.getElementById('status-text').innerText = `分析進度: ${Math.min(100, Math.floor(progress))}%`;
             if (progress >= 100) {
                 isAnalyzing = false;
                 completeAnalysis();
@@ -199,17 +199,14 @@
     function completeAnalysis() {
         document.getElementById('status-text').classList.add('hidden');
         document.getElementById('final-result').classList.remove('hidden');
-        const finalScore = Math.floor(Math.random() * 15 + 85); 
-        
+        const finalScore = Math.floor(Math.random() * 10 + 88); 
         document.getElementById('report-content').innerHTML = `
-            <b>【AI 檢測摘要】</b><br>
+            <b style="color:var(--gold);">【AI 檢測摘要】</b><br>
             ✨ 檢測對象：${document.getElementById('user-name').innerText}<br>
-            ✨ 肌膚得分：<span style="color:var(--gold); font-size: 20px;">${finalScore} 分</span><br>
+            ✨ 肌膚得分：<span style="color:var(--gold); font-size: 22px; font-weight:bold;">${finalScore} 分</span><br>
             🧬 膚質狀態：${surveyData.skinType}肌<br>
-            💡 專業建議：您的狀況良好，請持續維持目前的保養習慣。
+            💡 專業建議：您的狀況非常優異，請持續保持健康作息。
         `;
-        // 數據傳送 MySQL 邏輯保留在 console
-        console.log("數據已存檔：", { ...surveyData, score: finalScore });
     }
 </script>
 </body>
