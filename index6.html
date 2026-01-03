@@ -11,36 +11,52 @@
         :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.98); }
         body { 
             margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; font-family: sans-serif; background-color: #000;
+            min-height: 100vh; font-family: sans-serif; background-color: #1a1a1a;
             background-image: url('background.jpg'); background-size: cover; background-position: center;
         }
+        
+        /* 基礎卡片樣式 */
         .card { 
             background: var(--white-glass); border-radius: 30px; 
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3); width: 90%; max-width: 400px; 
-            height: 80vh; /* 固定高度，防止按鈕跑掉 */
-            position: relative; overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 90%; max-width: 400px; 
+            min-height: 450px; position: relative; overflow: hidden; 
+            display: flex; flex-direction: column; backdrop-filter: blur(10px);
         }
-        .content-area { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .hidden { display: none !important; }
-        
-        /* 相機容器：固定比例 */
+
+        .step { 
+            padding: 30px; width: 100%; box-sizing: border-box;
+            position: absolute; top: 0; left: 0; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease, transform 0.8s ease; /* 柔和轉場 */
+        }
+
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+        .visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+        /* 相機容器 */
         .video-container { 
-            width: 100%; height: 60%; background: #000; border-radius: 20px; 
-            overflow: hidden; border: 2px solid var(--gold); position: relative;
+            width: 100%; height: 250px; background: #000; border-radius: 20px; 
+            overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px;
         }
         video, canvas { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 固定在卡片底部的按鈕 */
-        .btn-container { padding: 20px; width: 100%; box-sizing: border-box; }
         .btn-gold { 
-            background: var(--gold); color: white; border: none; padding: 15px; 
+            background: var(--gold); color: white; border: none; padding: 15px 40px; 
             border-radius: 30px; cursor: pointer; width: 100%; font-size: 1.1rem; 
             font-weight: bold; transition: 0.3s;
         }
 
+        /* 拍照閃光 */
+        #flash { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: white; opacity: 0; pointer-events: none; z-index: 100;
+        }
+        .flash-active { animation: flashAnim 0.5s ease-out; }
+        @keyframes flashAnim { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
         .question { width: 100%; margin-bottom: 15px; text-align: left; }
-        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 5px; }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; }
+        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 8px; }
+        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; outline: none; }
 
         .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 99999; animation: fly 1s forwards; }
         @keyframes fly { 0% { opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
@@ -48,20 +64,25 @@
 </head>
 <body>
 
-<div class="card" id="main-card">
-    <div id="step-camera" class="content-area">
-        <h3 style="color: var(--gold); margin-bottom: 10px;">請將臉部對準</h3>
-        <div class="video-container">
-            <video id="video" playsinline></video>
-            <canvas id="canvas"></canvas>
-        </div>
-        <div class="btn-container">
-            <button class="btn-gold" id="btn-capture">📷 拍照分析</button>
-        </div>
+<div class="card">
+    <div id="flash"></div>
+
+    <div id="step-0" class="step visible">
+        <h2 style="color: var(--gold);">開始檢測</h2>
+        <p style="text-align:center; color:#666; line-height:1.6;">點擊按鈕後將請求相機權限<br>以進行即時 AI 肌膚掃描</p>
+        <button class="btn-gold" onclick="grantAndStart()">同意並開啟相機</button>
     </div>
 
-    <div id="step-survey" class="content-area hidden">
-        <h2 style="color: var(--gold);">AI 分析中</h2>
+    <div id="step-1" class="step hidden">
+        <h3 style="color: var(--gold); margin-bottom:15px;">請將臉部對準</h3>
+        <div class="video-container">
+            <video id="video" playsinline></video>
+        </div>
+        <button class="btn-gold" onclick="captureEffect()">📷 拍照分析</button>
+    </div>
+
+    <div id="step-2" class="step hidden">
+        <h2 style="color: var(--gold); margin-bottom:20px;">AI 分析中</h2>
         <div class="question">
             <label>您的膚質類型</label>
             <select id="user-skin"><option>乾性</option><option>油性</option><option>混合</option></select>
@@ -70,63 +91,70 @@
             <label>年齡區間</label>
             <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
         </div>
-        <div class="btn-container">
-            <button class="btn-gold" id="btn-submit">送出數據</button>
-        </div>
+        <button class="btn-gold" onclick="showFinalReport()">查看報告</button>
     </div>
 
-    <div id="step-report" class="content-area hidden">
+    <div id="step-3" class="step hidden">
         <h2 style="color:var(--gold);">檢測報告</h2>
-        <div id="report-content" style="text-align:left; line-height: 1.6;"></div>
-        <div class="btn-container">
-            <button class="btn-gold" onclick="location.reload()">重新檢測</button>
-        </div>
+        <div id="report-content" style="text-align:left; line-height: 1.8; color:#444;"></div>
+        <button class="btn-gold" onclick="location.reload()" style="margin-top:20px;">重新檢測</button>
     </div>
 </div>
 
 <div id="sparkle-container"></div>
 
 <script>
-    const videoElement = document.getElementById('video');
+    const video = document.getElementById('video');
     let userProfile = { displayName: "訪客" };
 
-    // 啟動相機：這段放在最前面，確保網頁一開就要求權限
-    async function startCamera() {
+    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
+        if (liff.isLoggedIn()) liff.getProfile().then(p => { userProfile = p; });
+    });
+
+    // 解決兩次彈窗：由點擊事件觸發請求
+    async function grantAndStart() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-            videoElement.srcObject = stream;
-            videoElement.play();
+            video.srcObject = stream;
+            video.play();
+            
+            // 轉場：第一層淡出，第二層淡入
+            switchStep('step-0', 'step-1');
         } catch (e) {
-            console.log("相機啟動失敗", e);
+            alert("請允許相機權限以使用此功能");
         }
     }
 
-    // 初始化 LIFF 並同步啟動相機
-    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) {
-            liff.getProfile().then(p => { userProfile = p; });
-        }
-        startCamera(); // 網頁初始化完畢後立刻要權限
-    });
+    // 拍照閃光 + 優雅轉場
+    function captureEffect() {
+        const flash = document.getElementById('flash');
+        flash.classList.add('flash-active');
+        
+        setTimeout(() => {
+            flash.classList.remove('flash-active');
+            // 轉場：第二層淡出，第三層淡入
+            switchStep('step-1', 'step-2');
+        }, 300);
+    }
 
-    // 拍照按鈕
-    document.getElementById('btn-capture').onclick = function() {
-        document.getElementById('step-camera').classList.add('hidden');
-        document.getElementById('step-survey').classList.remove('hidden');
-    };
-
-    // 送出按鈕
-    document.getElementById('btn-submit').onclick = function() {
-        document.getElementById('step-survey').classList.add('hidden');
-        document.getElementById('step-report').classList.remove('hidden');
+    function showFinalReport() {
         const score = Math.floor(Math.random() * 8 + 92);
         document.getElementById('report-content').innerHTML = `
             <b>👑 您好，${userProfile.displayName}</b><br>
             ✨ 水玉光得分：${score} 分<br>
-            🧬 膚質：${document.getElementById('user-skin').value}<br>
-            💡 建議：數據顯示您的膚況極佳，請維持目前的保養習慣。
+            🧬 膚質狀態：${document.getElementById('user-skin').value}<br>
+            💡 建議：您的肌膚狀況非常優異，請維持目前的高品質保養習慣。
         `;
-    };
+        switchStep('step-2', 'step-3');
+    }
+
+    // 通用淡入淡出函數
+    function switchStep(outId, inId) {
+        document.getElementById(outId).classList.replace('visible', 'hidden');
+        setTimeout(() => {
+            document.getElementById(inId).classList.replace('hidden', 'visible');
+        }, 100); // 稍微錯開，避免重疊殘影
+    }
 
     // 金粉特效
     document.addEventListener('mousemove', e => spawn(e));
@@ -135,8 +163,8 @@
         const s = document.createElement('div');
         s.className = 'sparkle';
         s.style.left = e.clientX + 'px'; s.style.top = e.clientY + 'px';
-        s.style.setProperty('--mx', (Math.random()-0.5)*100+'px');
-        s.style.setProperty('--my', (Math.random()-0.5)*100+'px');
+        s.style.setProperty('--mx', (Math.random()-0.5)*120+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*120+'px');
         document.getElementById('sparkle-container').appendChild(s);
         setTimeout(() => s.remove(), 1000);
     }
