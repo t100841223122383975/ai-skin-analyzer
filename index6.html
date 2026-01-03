@@ -3,56 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚檢測系統 - 氣色 × 膚況顧問</title>
+    <title>AI 臉部分析中心</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    
     <style>
+        :root { --line-green: #06C755; --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.92); }
         body { 
-            margin: 0; padding: 0;
-            display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh;
-            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
-            /* 背景圖設定：圖片請叫 "background.jpg" 並放在同個資料夾 */
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            font-family: sans-serif; background-color: #f4f7f6;
             background-image: url('background.jpg'); 
             background-size: cover; background-position: center; background-attachment: fixed;
-            background-color: #fdfaf5; /* 圖片沒讀到時的備用色 */
+            overflow: hidden; /* 防止手機滑動時畫面亂跳 */
         }
-
-        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.92); }
-
         .card { 
-            background: var(--white-glass); 
-            padding: 2.5rem; border-radius: 30px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-            width: 90%; max-width: 450px; 
-            text-align: center; backdrop-filter: blur(8px);
-            z-index: 10;
+            background: var(--white-glass); padding: 2rem; border-radius: 30px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 85%; max-width: 400px; 
+            text-align: center; backdrop-filter: blur(8px); z-index: 10; 
         }
-
         .hidden { display: none; }
-        .question { margin-bottom: 20px; text-align: left; }
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 14px 40px; border-radius: 30px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
-        .btn-gold:hover { background: #b8962d; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); }
-
-        .video-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 20px; border: 2px solid var(--gold); }
+        .btn-gold { 
+            background: var(--line-green); color: white; border: none; 
+            padding: 15px; border-radius: 30px; width: 100%; 
+            font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 20px;
+        }
+        .video-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin: 15px 0; border: 2px solid var(--line-green); }
         video, canvas { width: 100%; display: block; }
         canvas { position: absolute; top: 0; left: 0; }
-
         .loading-bar { height: 6px; background: #eee; border-radius: 3px; margin: 15px 0; overflow: hidden; }
-        .progress { height: 100%; background: var(--gold); width: 0%; transition: width 0.1s; }
-
+        .progress { height: 100%; background: var(--line-green); width: 0%; transition: width 0.1s; }
+        
         /* 金粉特效樣式 */
         .sparkle {
-            position: fixed; width: 6px; height: 6px;
-            background: #d4af37; border-radius: 50%;
-            pointer-events: none; z-index: 99999;
-            box-shadow: 0 0 10px #fff7d7, 0 0 20px #d4af37;
-            animation: fly 1s forwards;
+            position: fixed; width: 6px; height: 6px; background: var(--gold); 
+            border-radius: 50%; pointer-events: none; z-index: 99999;
+            box-shadow: 0 0 10px #fff, 0 0 15px var(--gold);
+            animation: fly 0.8s forwards;
         }
         @keyframes fly {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            0% { transform: scale(1); opacity: 1; }
             100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; }
         }
     </style>
@@ -61,42 +51,28 @@
 
 <div class="card">
     <div id="step-survey">
-        <h2 style="color: var(--gold);">您好，<span id="user-name">訪客</span></h2>
-        <p>請填寫資料，開始 AI 肌膚諮詢</p>
-        
-        <div class="question">
+        <h2 style="color: var(--line-green);">您好，<span id="user-name">訪客</span></h2>
+        <p>歡迎來到 AI 臉部分析中心</p>
+        <div style="text-align:left; margin-top:20px;">
             <label>膚質類型</label>
-            <select id="user-skin" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;">
-                <option value="乾性">乾性</option>
-                <option value="油性">油性</option>
-                <option value="混合">混合</option>
+            <select id="user-skin" style="width:100%; padding:10px; margin:10px 0; border-radius:10px; border:1px solid #ccc;">
+                <option>乾性</option><option>油性</option><option>混合性</option>
             </select>
         </div>
-
-        <div class="question">
-            <label>年齡區間</label>
-            <select id="user-age" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;">
-                <option value="20-30">20-30 歲</option>
-                <option value="31-40">31-40 歲</option>
-                <option value="41+">41 歲以上</option>
-            </select>
-        </div>
-
-        <button class="btn-gold" onclick="goToAnalysis()">開始 AI 分析</button>
+        <button class="btn-gold" id="start-btn">開始 AI 分析</button>
     </div>
 
     <div id="step-analysis" class="hidden">
-        <h3 style="color: var(--gold);">AI 掃描偵測中...</h3>
+        <h3 style="color: var(--line-green);">AI 掃描中...</h3>
         <div class="video-container">
             <video id="video" playsinline></video>
             <canvas id="canvas"></canvas>
         </div>
-        <div id="status-text">請對準鏡頭並保持不動</div>
+        <div id="status-text">請保持不動...</div>
         <div class="loading-bar"><div id="progress" class="progress"></div></div>
-        
         <div id="final-result" class="hidden">
-            <h2 style="color:var(--gold);">分析完成</h2>
-            <div id="report-content" style="text-align:left; margin-bottom:20px; line-height: 1.6;"></div>
+            <h2 style="color:var(--line-green);">分析完成</h2>
+            <div id="report-content" style="text-align:left; margin-bottom:20px;"></div>
             <button class="btn-gold" onclick="location.reload()">重新檢測</button>
         </div>
     </div>
@@ -107,65 +83,86 @@
 <script>
     let isAnalyzing = false;
     let progress = 0;
-    let surveyData = {};
-    
     const videoElement = document.getElementById('video');
     const canvasElement = document.getElementById('canvas');
     const canvasCtx = canvasElement.getContext('2d');
 
-    // 初始化 LINE LIFF
-    async function initLiff() {
+    // 1. 金粉特效 (修正手機不跑的問題)
+    function spawn(e) {
+        const x = e.clientX || (e.touches && e.touches[0].clientX);
+        const y = e.clientY || (e.touches && e.touches[0].clientY);
+        if(!x || !y) return;
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = x + 'px'; s.style.top = y + 'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*100+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*100+'px');
+        document.getElementById('sparkle-container').appendChild(s);
+        setTimeout(() => s.remove(), 800);
+    }
+    document.addEventListener('mousemove', spawn);
+    document.addEventListener('touchmove', spawn, {passive: true});
+
+    // 2. LIFF 初始化 (修正按鈕沒反應的問題)
+    async function main() {
         try {
-            await liff.init({ liffId: "2008812290-AidClwjS" }); // 已填入大師的 ID
+            await liff.init({ liffId: "2008812290-AidCIwjS" }); // 這裡已修正大寫 I
             if (liff.isLoggedIn()) {
                 const profile = await liff.getProfile();
                 document.getElementById('user-name').innerText = profile.displayName;
             } else {
                 liff.login();
             }
-        } catch (e) { console.log("LIFF 初始化失敗或不在 LINE 環境中"); }
+        } catch (err) {
+            console.log("LIFF Error:", err);
+            document.getElementById('user-name').innerText = "大師";
+        }
     }
-    initLiff();
+    main();
 
-    // 金粉滑鼠與觸控特效
-    const container = document.getElementById('sparkle-container');
-    function createSparkle(x, y) {
-        const sparkle = document.createElement('div');
-        sparkle.className = 'sparkle';
-        sparkle.style.left = x + 'px';
-        sparkle.style.top = y + 'px';
-        const moveX = (Math.random() - 0.5) * 120;
-        const moveY = (Math.random() - 0.5) * 120;
-        sparkle.style.setProperty('--mx', `${moveX}px`);
-        sparkle.style.setProperty('--my', `${moveY}px`);
-        container.appendChild(sparkle);
-        setTimeout(() => sparkle.remove(), 1000);
-    }
-    document.addEventListener('mousemove', (e) => createSparkle(e.clientX, e.clientY));
-    document.addEventListener('touchmove', (e) => createSparkle(e.touches[0].clientX, e.touches[0].clientY));
-
-    function goToAnalysis() {
-        surveyData = {
-            skinType: document.getElementById('user-skin').value,
-            ageRange: document.getElementById('user-age').value
-        };
+    // 3. 按鈕事件綁定
+    document.getElementById('start-btn').onclick = function() {
         document.getElementById('step-survey').classList.add('hidden');
         document.getElementById('step-analysis').classList.remove('hidden');
         startCamera();
-    }
+    };
 
+    // 4. 相機與分析邏輯
     const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
-    faceMesh.onResults(onResults);
-
-    function onResults(results) {
+    faceMesh.onResults((results) => {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && isAnalyzing) {
-            updateProgress();
+            progress += 0.8;
+            document.getElementById('progress').style.width = progress + '%';
+            document.getElementById('status-text').innerText = `分析進度: ${Math.floor(progress)}%`;
+            if (progress >= 100) {
+                isAnalyzing = false;
+                showResult();
+            }
         }
+    });
+
+    async function startCamera() {
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await faceMesh.send({image: videoElement}); },
+            width: 640, height: 480
+        });
+        await camera.start();
+        isAnalyzing = true;
     }
 
-    function updateProgress() {
-        if (progress < 100) {
-            progress += 0.8;
+    function showResult() {
+        document.getElementById('status-text').classList.add('hidden');
+        document.getElementById('final-result').classList.remove('hidden');
+        const score = Math.floor(Math.random() * 15 + 85);
+        document.getElementById('report-content').innerHTML = `
+            <b>【檢測結果】</b><br>
+            ✨ 水玉光得分：${score} 分<br>
+            ✨ 建議：您的膚況穩定，請保持現有的保養習慣。
+        `;
+    }
+</script>
+</body>
+</html>
