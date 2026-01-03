@@ -2,68 +2,71 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI 肌膚檢測系統 - 氣色 × 膚況顧問</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
     <style>
-        /* =========================================
-           【背景圖設定區】
-           您可以在這裡更換 background-image 的網址
-           ========================================= */
         body { 
-            margin: 0; 
-            padding: 0;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center; 
             min-height: 100vh;
             font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
-            
-            /* 背景圖設定：您可以換成自己的圖片網址或本地路徑，圖片請叫"background.jpg" */
+            /* 背景圖設定：圖片請叫 "background.jpg" 並放在同個資料夾 */
             background-image: url('background.jpg'); 
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background-size: cover; background-position: center; background-attachment: fixed;
+            background-color: #fdfaf5; /* 圖片沒讀到時的備用色 */
         }
 
-        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.9); }
+        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.92); }
 
-        /* 卡片容器：增加了半透明毛玻璃效果，讓背景圖能透出來 */
         .card { 
             background: var(--white-glass); 
-            padding: 2.5rem; 
-            border-radius: 30px; 
+            padding: 2.5rem; border-radius: 30px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-            width: 90%; 
-            max-width: 450px; 
-            text-align: center;
-            backdrop-filter: blur(5px); /* 毛玻璃模糊效果 */
+            width: 90%; max-width: 450px; 
+            text-align: center; backdrop-filter: blur(8px);
+            z-index: 10;
         }
 
         .hidden { display: none; }
         .question { margin-bottom: 20px; text-align: left; }
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 12px 40px; border-radius: 25px; cursor: pointer; width: 100%; font-size: 16px; transition: 0.3s; }
-        .btn-gold:hover { background: #b8962d; transform: translateY(-2px); }
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 14px 40px; border-radius: 30px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        .btn-gold:hover { background: #b8962d; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); }
 
-        .video-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 20px; }
+        .video-container { position: relative; width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 20px; border: 2px solid var(--gold); }
         video, canvas { width: 100%; display: block; }
         canvas { position: absolute; top: 0; left: 0; }
 
-        .loading-bar { height: 6px; background: #ddd; border-radius: 3px; margin: 15px 0; overflow: hidden; }
+        .loading-bar { height: 6px; background: #eee; border-radius: 3px; margin: 15px 0; overflow: hidden; }
         .progress { height: 100%; background: var(--gold); width: 0%; transition: width 0.1s; }
+
+        /* 金粉特效樣式 */
+        .sparkle {
+            position: fixed; width: 6px; height: 6px;
+            background: #d4af37; border-radius: 50%;
+            pointer-events: none; z-index: 99999;
+            box-shadow: 0 0 10px #fff7d7, 0 0 20px #d4af37;
+            animation: fly 1s forwards;
+        }
+        @keyframes fly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="step-survey">
-        <h2 style="color: var(--gold);">肌膚諮詢</h2>
-        <p>請先填寫您的基礎資料</p>
+        <h2 style="color: var(--gold);">您好，<span id="user-name">訪客</span></h2>
+        <p>請填寫資料，開始 AI 肌膚諮詢</p>
         
         <div class="question">
             <label>膚質類型</label>
-            <select id="user-skin" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">
+            <select id="user-skin" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;">
                 <option value="乾性">乾性</option>
                 <option value="油性">油性</option>
                 <option value="混合">混合</option>
@@ -72,7 +75,7 @@
 
         <div class="question">
             <label>年齡區間</label>
-            <select id="user-age" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">
+            <select id="user-age" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;">
                 <option value="20-30">20-30 歲</option>
                 <option value="31-40">31-40 歲</option>
                 <option value="41+">41 歲以上</option>
@@ -83,45 +86,74 @@
     </div>
 
     <div id="step-analysis" class="hidden">
-        <h3>AI 掃描中...</h3>
+        <h3 style="color: var(--gold);">AI 掃描偵測中...</h3>
         <div class="video-container">
             <video id="video" playsinline></video>
             <canvas id="canvas"></canvas>
         </div>
-        <div id="status-text">請保持不動...</div>
+        <div id="status-text">請對準鏡頭並保持不動</div>
         <div class="loading-bar"><div id="progress" class="progress"></div></div>
         
         <div id="final-result" class="hidden">
-            <h2 style="color:var(--gold);">分析報告</h2>
-            <div id="report-content" style="text-align:left; margin-bottom:20px;"></div>
+            <h2 style="color:var(--gold);">分析完成</h2>
+            <div id="report-content" style="text-align:left; margin-bottom:20px; line-height: 1.6;"></div>
             <button class="btn-gold" onclick="location.reload()">重新檢測</button>
         </div>
     </div>
 </div>
 
+<div id="sparkle-container"></div>
+
 <script>
     let isAnalyzing = false;
     let progress = 0;
-    let surveyData = {}; // 用於存放問卷數據
+    let surveyData = {};
     
     const videoElement = document.getElementById('video');
     const canvasElement = document.getElementById('canvas');
     const canvasCtx = canvasElement.getContext('2d');
 
-    // 1. 進入檢測階段
+    // 初始化 LINE LIFF
+    async function initLiff() {
+        try {
+            await liff.init({ liffId: "2008812290-AidClwjS" }); // 已填入大師的 ID
+            if (liff.isLoggedIn()) {
+                const profile = await liff.getProfile();
+                document.getElementById('user-name').innerText = profile.displayName;
+            } else {
+                liff.login();
+            }
+        } catch (e) { console.log("LIFF 初始化失敗或不在 LINE 環境中"); }
+    }
+    initLiff();
+
+    // 金粉滑鼠與觸控特效
+    const container = document.getElementById('sparkle-container');
+    function createSparkle(x, y) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.style.left = x + 'px';
+        sparkle.style.top = y + 'px';
+        const moveX = (Math.random() - 0.5) * 120;
+        const moveY = (Math.random() - 0.5) * 120;
+        sparkle.style.setProperty('--mx', `${moveX}px`);
+        sparkle.style.setProperty('--my', `${moveY}px`);
+        container.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 1000);
+    }
+    document.addEventListener('mousemove', (e) => createSparkle(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => createSparkle(e.touches[0].clientX, e.touches[0].clientY));
+
     function goToAnalysis() {
-        // 抓取問卷數據存入變數
         surveyData = {
             skinType: document.getElementById('user-skin').value,
             ageRange: document.getElementById('user-age').value
         };
-
         document.getElementById('step-survey').classList.add('hidden');
         document.getElementById('step-analysis').classList.remove('hidden');
         startCamera();
     }
 
-    // 2. 初始化 FaceMesh (同前次)
     const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
     faceMesh.onResults(onResults);
@@ -129,7 +161,6 @@
     function onResults(results) {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
-        
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && isAnalyzing) {
             updateProgress();
         }
@@ -137,117 +168,4 @@
 
     function updateProgress() {
         if (progress < 100) {
-            progress += 0.8; 
-            document.getElementById('progress').style.width = progress + '%';
-            document.getElementById('status-text').innerText = `分析進度: ${Math.floor(progress)}%`;
-        } else if (progress >= 100 && isAnalyzing) {
-            isAnalyzing = false;
-            completeAnalysis();
-        }
-    }
-
-    // 3. 分析完成：顯示結果並將數據傳給 MySQL
-    function completeAnalysis() {
-        document.getElementById('status-text').classList.add('hidden');
-        document.getElementById('final-result').classList.remove('hidden');
-
-        const finalScore = Math.floor(Math.random() * 20 + 80); // 模擬分數
-        
-        document.getElementById('report-content').innerHTML = `
-            <b>膚質：</b> ${surveyData.skinType}<br>
-            <b>年齡：</b> ${surveyData.ageRange}<br>
-            <b>AI 評分：</b> ${finalScore} 分<br>
-            <b>建議：</b> 您的肌膚狀況良好，請持續保濕。
-        `;
-
-        // =========================================
-        // 【傳送數據至後端 MySQL 區塊】
-        // =========================================
-        const finalData = {
-            ...surveyData,
-            score: finalScore,
-            date: new Date().toISOString()
-        };
-
-        sendDataToDatabase(finalData);
-    }
-
-    // 將數據傳送到後端的 API (需搭配 PHP/Node.js 等後端程式)
-    function sendDataToDatabase(data) {
-        console.log("正在將數據傳至伺服器...", data);
-        
-        /* // 大師，當您準備好後端 API 時，請取消下方註解並修改 URL
-        fetch('your-backend-api-url.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => console.log('成功存入 MySQL:', result))
-        .catch(error => console.error('存入失敗:', error));
-        */
-    }
-
-    async function startCamera() {
-        const camera = new Camera(videoElement, {
-            onFrame: async () => { await faceMesh.send({image: videoElement}); },
-            width: 640, height: 480
-        });
-        camera.start();
-        isAnalyzing = true;
-    }
-</script>
-
- /* 滑鼠 */
-<div id="sparkle-container"></div>
-
-<style>
-    /* 恢復原本滑鼠，但在移動時加上星星 */
-    body { cursor: default; } 
-
-    .sparkle {
-        position: fixed;
-        width: 6px;
-        height: 6px;
-        background: #d4af37; /* 金粉顏色 */
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 99999;
-        box-shadow: 0 0 10px #fff7d7, 0 0 20px #d4af37; /* 閃爍發光感 */
-        animation: fly 1s forwards;
-    }
-
-    @keyframes fly {
-        0% { transform: translate(0, 0) scale(1); opacity: 1; }
-        100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; }
-    }
-</style>
-
-<script>
-    const container = document.getElementById('sparkle-container');
-
-    document.addEventListener('mousemove', (e) => {
-        // 每移動一次就產生一個小金粉
-        const sparkle = document.createElement('div');
-        sparkle.className = 'sparkle';
-        
-        // 設定初始位置在滑鼠尖端
-        sparkle.style.left = e.clientX + 'px';
-        sparkle.style.top = e.clientY + 'px';
-
-        // 隨機噴散的方向
-        const moveX = (Math.random() - 0.5) * 100;
-        const moveY = (Math.random() - 0.5) * 100;
-        sparkle.style.setProperty('--mx', `${moveX}px`);
-        sparkle.style.setProperty('--my', `${moveY}px`);
-
-        container.appendChild(sparkle);
-
-        // 1秒後自動移除，避免佔用記憶體
-        setTimeout(() => {
-            sparkle.remove();
-        }, 1000);
-    });
-</script>
-</body>
-</html>
+            progress += 0.8;
