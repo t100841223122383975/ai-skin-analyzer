@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚實驗室 - 完整 Demo</title>
+    <title>AI 肌膚實驗室 - 完整版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -28,30 +28,39 @@
         video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-gold { background: var(--gold); color: white; border: none; padding: 14px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
-        .btn-detail { background: var(--accent); color: #8a6d3b; border: none; padding: 8px 15px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        .btn-detail { background: var(--accent); color: #8a6d3b; border: none; padding: 8px 15px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; font-weight: bold; width: 100%; }
         
         .report-sub-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); text-align: left; }
         .tag { display: inline-block; padding: 5px 12px; border-radius: 15px; background: var(--accent); font-size: 12px; margin: 3px; color: #8a6d3b; font-weight: 500; }
         
-        /* 詳情頁專用樣式 */
-        .detail-header { text-align: center; color: var(--gold); margin-bottom: 20px; }
-        .detail-content { line-height: 1.6; color: #444; }
-        .icon-item { display: flex; align-items: flex-start; margin-bottom: 12px; }
-        .icon-item img { width: 24px; margin-right: 10px; margin-top: 3px; }
+        label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; }
+        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); margin-top: 5px; background: white; }
 
-        #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; padding: 30px; gap: 20px; }
+        /* 導出圖片用的隱藏正方形排版區 */
+        #export-container { position: absolute; left: -9999px; top: -9999px; width: 600px; height: 600px; background: #fff; padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     </style>
 </head>
 <body>
 
 <div id="global-flash"></div>
 
-<div class="card" id="main-card-ui">
+<div id="export-container">
+    <div style="border-radius: 20px; overflow: hidden; height: 100%;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+    <div style="display: flex; flex-direction: column; justify-content: center;">
+        <h2 style="color:var(--gold); margin:0;">AI 肌膚分析小卡</h2>
+        <p id="export-user-name" style="font-weight:bold;"></p>
+        <hr style="width:100%; border:0.5px solid #eee; margin:15px 0;">
+        <p>活力指數: <strong>78</strong></p>
+        <canvas id="exportChart" width="250" height="250"></canvas>
+    </div>
+</div>
+
+<div class="card" id="main-ui-container">
     <div id="step-0" class="step visible">
         <h2 style="text-align:center; color: var(--gold); margin-top: 20px;">AI 美肌實驗室</h2>
         <div style="text-align:center; margin: 30px 0;">
             <p id="user-name-display" style="font-size: 1.1rem;">訪客，歡迎回來</p>
-            <p style="color:#888;">開始您的專屬膚況分析</p>
+            <p style="color:#888;">開始專業掃描分析</p>
         </div>
         <button class="btn-gold" onclick="grantAndStart()">立即檢測</button>
     </div>
@@ -63,89 +72,80 @@
     </div>
 
     <div id="step-2" class="step">
-        <h2 style="color: var(--gold); text-align:center;">分析準備中</h2>
-        <label style="font-weight:bold; color:var(--gold);">膚質類型</label>
-        <select id="user-skin" style="width:100%; padding:10px; margin:10px 0; border-radius:10px; border:1px solid var(--gold);"><option>混合性</option><option>油性</option><option>乾性</option></select>
-        <button class="btn-gold" onclick="showFinalReport()" style="margin-top:20px;">查看分析報告</button>
+        <h2 style="color: var(--gold); text-align:center;">補充資訊</h2>
+        <label>膚質類型</label>
+        <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
+        <label>年齡區間</label>
+        <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
+        <button class="btn-gold" onclick="showFinalReport()" style="margin-top: 30px;">查看報告</button>
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; margin-bottom: 15px;">肌膚分析報告</h2>
+        <h2 style="text-align: center; margin-bottom: 15px;">AI 分析報告</h2>
         <div class="photo-container"><img id="captured-photo" style="width:100%; height:100%; object-fit:cover;"></div>
         
         <div class="report-sub-card" style="background: #fff0eb;">
-            <h3 style="margin:0; font-size:1rem;">A. 氣色急救站</h3>
-            <p style="margin:10px 0;">活力指數: <strong>78</strong></p>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-a-detail')">查看詳情 →</button>
+            <h3>A. 氣色急救站</h3>
+            <p>今日活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
+            <p>💡 急救行動：1. 多喝水 2. 保濕面膜</p>
+            <button class="btn-detail" onclick="switchStep('step-3', 'step-a-detail')">查看 A 區細節 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="margin:0; font-size:1rem;">B. 深度問題偵測</h3>
+            <h3>B. 深度問題偵測</h3>
             <canvas id="skinChart" style="max-height:200px;"></canvas>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-b-detail')">查看分析細節 →</button>
+            <p>⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
+            <button class="btn-detail" onclick="switchStep('step-3', 'step-b-detail')">查看 B 區細節 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="margin:0; font-size:1rem;">C. 生活習慣小秘訣</h3>
-            <p style="font-size:0.9rem; margin-top:5px;">針對您的膚況提供日常改善建議</p>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-c-detail')">進入詳情頁面 →</button>
+            <h3>C. 成分處方籤</h3>
+            <p>針對問題，建議使用：</p>
+            <div class="tag">水楊酸 (代謝油脂)</div>
+            <div class="tag">維生素 B5 (舒緩修復)</div>
+            <button class="btn-detail" onclick="switchStep('step-3', 'step-c-detail')">生活習慣小秘訣 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="margin:0; font-size:1rem;">D. 智慧選品</h3>
-            <p style="color:var(--gold); font-weight:bold; font-size:0.9rem;">匹配度：94%</p>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-d-detail')">查看推薦產品 →</button>
+            <h3>D. 智慧選品</h3>
+            <div style="border-left: 4px solid var(--gold); padding-left: 10px;">
+                <p><strong>理膚寶水 Duo+</strong></p>
+                <p style="color:var(--gold); font-weight:bold;">匹配度：94%</p>
+            </div>
+            <button class="btn-detail" onclick="switchStep('step-3', 'step-d-detail')">查看推薦詳情 →</button>
         </div>
 
+        <button class="btn-gold" style="background: #5cb85c;" onclick="generateSquareImage()">💾 儲存正方形小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
     </div>
 
-    <div id="step-a-detail" class="step">
-        <h2 class="detail-header">A. 氣色急救詳情</h2>
-        <div class="report-sub-card">這裡將塞入氣色急救的具體行動與數據...</div>
-        <button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button>
-    </div>
-
-    <div id="step-b-detail" class="step">
-        <h2 class="detail-header">B. 深度偵測細節</h2>
-        <div class="report-sub-card">這裡將分析各維度的肌膚數據...</div>
-        <button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button>
-    </div>
-
     <div id="step-c-detail" class="step">
-        <h2 class="detail-header">生活習慣小秘訣</h2>
-        <div class="detail-content">
-            <h4 style="color:#444;">為什麼最近氣色比較容易下降？</h4>
-            <p style="font-size:0.9rem; color:#666;">疲勞累積時，身體優先供給能量給基本運作，修復速度可能變慢。這並非異常，而是身體在提醒您「需要支持」。</p>
-            
-            <h4 style="color:#444; margin-top:20px;">可以先從飲食中補充的營養方向</h4>
-            <div class="report-sub-card">
-                <div class="icon-item">🥦 <div><strong>深綠色蔬菜</strong><br><small>提供抗氧化營養，支持細胞更新</small></div></div>
-                <div class="icon-item">🐟 <div><strong>富含 Omega-3 的食物</strong><br><small>有助於調節發炎反應</small></div></div>
-                <div class="icon-item">🍊 <div><strong>富含維生素 C 的水果</strong><br><small>支持膠原生成</small></div></div>
-            </div>
+        <h2 style="text-align:center; color:var(--gold);">生活習慣小秘訣</h2>
+        <div class="report-sub-card">
+            <h4>為什麼最近氣色容易下降？</h4>
+            <p style="font-size:0.9rem; color:#666;">疲勞累積時，身體優先供給能量給基本運作。這並非異常，而是身體在提醒您需要支持。</p>
+            <h4 style="margin-top:15px;">飲食建議</h4>
+            <p style="font-size:0.9rem;">🥦 深綠色蔬菜、🐟 Omega-3 食物、🍊 維生素 C 水果</p>
         </div>
-        <button class="btn-gold" style="background:var(--green-soft);" onclick="switchStep('step-c-detail', 'step-d-detail')">查看成分與應用建議</button>
-        <button class="btn-gold" style="background:#ccc; font-size:0.9rem;" onclick="switchStep('step-c-detail', 'step-3')">返回總覽</button>
+        <button class="btn-gold" onclick="switchStep('step-c-detail', 'step-3')">返回報告總覽</button>
     </div>
 
-    <div id="step-d-detail" class="step">
-        <h2 class="detail-header">D. 智慧選品詳情</h2>
-        <div class="report-sub-card">推薦產品與成分配方詳解...</div>
-        <button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回報告總覽</button>
-    </div>
+    <div id="step-a-detail" class="step"><h2 style="text-align:center;">A 區詳情</h2><button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回</button></div>
+    <div id="step-b-detail" class="step"><h2 style="text-align:center;">B 區詳情</h2><button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回</button></div>
+    <div id="step-d-detail" class="step"><h2 style="text-align:center;">D 區詳情</h2><button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回</button></div>
 </div>
 
 <script>
     const video = document.getElementById('video');
     const photo = document.getElementById('captured-photo');
+    let userName = "訪客";
 
-    // LIFF 訪客預設
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) liff.getProfile().then(p => { 
-            document.getElementById('user-name-display').innerText = p.displayName + "，歡迎回來"; 
+            userName = p.displayName;
+            document.getElementById('user-name-display').innerText = userName + "，歡迎回來"; 
         });
-    }).catch(() => { document.getElementById('user-name-display').innerText = "訪客，歡迎回來"; });
+    });
 
     async function grantAndStart() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -169,30 +169,42 @@
 
     function showFinalReport() {
         switchStep('step-2', 'step-3');
-        setTimeout(initChart, 500);
+        setTimeout(initCharts, 600);
     }
 
-    // 關鍵轉場函式
     function switchStep(outId, inId) {
-        const outElem = document.getElementById(outId);
-        const inElem = document.getElementById(inId);
-        
-        outElem.style.opacity = '0';
+        const outE = document.getElementById(outId);
+        const inE = document.getElementById(inId);
+        outE.style.opacity = '0';
         setTimeout(() => {
-            outElem.classList.remove('visible');
-            inElem.classList.add('visible');
-            setTimeout(() => { inElem.style.opacity = '1'; }, 50);
+            outE.classList.remove('visible');
+            inE.classList.add('visible');
+            setTimeout(() => { inE.style.opacity = '1'; }, 50);
         }, 500);
     }
 
-    function initChart() {
-        new Chart(document.getElementById('skinChart'), {
+    function initCharts() {
+        const config = {
             type: 'radar',
             data: {
                 labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
                 datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.2)', borderColor: '#d4a373' }]
             },
             options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } }
+        };
+        new Chart(document.getElementById('skinChart'), config);
+        new Chart(document.getElementById('exportChart'), config);
+    }
+
+    function generateSquareImage() {
+        document.getElementById('export-photo').src = photo.src;
+        document.getElementById('export-user-name').innerText = "姓名: " + userName;
+        html2canvas(document.getElementById('export-container'), { scale: 2 }).then(cvs => {
+            const link = document.createElement('a');
+            link.download = 'SkinReport_Card.png';
+            link.href = cvs.toDataURL();
+            link.click();
+            alert("正方形小卡已儲存！");
         });
     }
 </script>
