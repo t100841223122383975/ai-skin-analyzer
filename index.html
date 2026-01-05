@@ -24,11 +24,7 @@
         .step { width: 100%; display: none; }
         .visible { display: block; }
         
-        /* 修正照片顯示比例 */
-        .photo-container { 
-            width: 100%; height: 280px; background: #000; border-radius: 20px; 
-            overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px;
-        }
+        .photo-container { width: 100%; height: 280px; background: #000; border-radius: 20px; overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px; }
         video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-gold { background: var(--gold); color: white; border: none; padding: 14px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
@@ -37,16 +33,37 @@
         
         label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; margin-bottom: 5px; }
         select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; background: white; }
-        
-        #capture-canvas { display: none; }
+
+        /* 導出專用正方形容器 (平時隱藏) */
+        #export-container { 
+            position: absolute; left: -9999px; top: -9999px; 
+            width: 600px; height: 600px; background: #fff; padding: 30px; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
     </style>
 </head>
 <body>
 
 <div id="global-flash"></div>
-<canvas id="capture-canvas"></canvas>
 
-<div class="card" id="main-report-card">
+<div id="export-container">
+    <div style="border-radius: 20px; overflow: hidden; height: 100%;">
+        <img id="export-photo" style="width:100%; height:100%; object-fit:cover;">
+    </div>
+    <div style="display: flex; flex-direction: column; justify-content: center;">
+        <h2 style="color:var(--gold); margin:0;">AI 肌膚分析報告</h2>
+        <p id="export-user-name" style="font-weight:bold;"></p>
+        <hr style="width:100%; border:0.5px solid #eee; margin:15px 0;">
+        <p>活力指數: <strong>78</strong></p>
+        <canvas id="exportChart" width="250" height="250"></canvas>
+        <div style="margin-top:10px;">
+            <div class="tag">發炎痘痘 (6.8分)</div>
+            <div class="tag">混合肌</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
     <div id="step-0" class="step visible">
         <h2 style="text-align:center; color: var(--gold); margin-top: 20px;">AI 肌膚實驗室</h2>
         <div style="text-align:center; margin: 30px 0;">
@@ -64,65 +81,55 @@
 
     <div id="step-2" class="step">
         <h2 style="color: var(--gold); text-align:center;">補充資訊</h2>
-        <div class="question">
-            <label>膚質類型</label>
-            <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
-        </div>
-        <div class="question">
-            <label>年齡區間</label>
-            <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
-        </div>
+        <label>膚質類型</label>
+        <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
+        <label>年齡區間</label>
+        <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
         <button class="btn-gold" onclick="showFinalReport()" style="margin-top: 30px;">查看報告</button>
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; margin-bottom: 15px;">AI 分析報告</h2>
+        <h2 style="text-align: center;">AI 分析報告</h2>
+        <div class="photo-container"><img id="captured-photo"></div>
         
-        <div class="photo-container">
-            <img id="captured-photo">
-        </div>
-
         <div class="report-sub-card" style="background: #fff0eb;">
-            <h3 style="font-size:1rem; margin:0;">A. 氣色急救站</h3>
-            <p style="margin-top:10px;">活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
-            <p style="font-size:0.9rem;">💡 急救：1. 多喝水 2. 保濕面膜</p>
+            <h3>A. 氣色急救站</h3>
+            <p>活力指數: 78 <span class="tag">狀態不佳</span></p>
+            <p>💡 急救行動</p>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="font-size:1rem; margin:0;">B. 深度問題偵測</h3>
-            <canvas id="skinChart" style="max-height: 200px; margin: 10px 0;"></canvas>
-            <p style="font-size:0.9rem;">⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
+            <h3>B. 深度偵測</h3>
+            <canvas id="skinChart"></canvas>
+            <p>⚠️ 主要問題：發炎痘痘 (6.8分)</p>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="font-size:1rem; margin:0;">C. 成分處方籤</h3>
-            <p style="font-size:0.85rem; margin-top:10px;">建議使用：</p>
-            <div class="tag">水楊酸 (代謝油脂)</div>
-            <div class="tag">維生素 B5 (舒緩修復)</div>
-            <p><small>*注意：A醇類建議夜間使用</small></p>
+            <h3>C. 成分處方籤</h3>
+            <div class="tag">水楊酸</div><div class="tag">維生素 B5</div>
         </div>
 
         <div class="report-sub-card">
-            <h3 style="font-size:1rem; margin:0;">D. 智慧選品</h3>
-            <div style="border-left: 4px solid var(--gold); padding-left: 10px; margin-top:10px;">
-                <p><strong>理膚寶水 Duo+</strong></p>
-                <p style="color:var(--gold); font-weight:bold;">匹配度：94%</p>
-            </div>
+            <h3>D. 智慧選品</h3>
+            <p><strong>理膚寶水 Duo+</strong></p>
+            <p style="color:var(--gold); font-weight:bold;">匹配度：94%</p>
         </div>
 
-        <button class="btn-gold" id="download-btn" onclick="takeScreenshot()" style="background: #5cb85c;">💾 儲存報告圖片</button>
+        <button class="btn-gold" onclick="generateSquareImage()" style="background: #5cb85c;">💾 儲存正方形小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
     </div>
 </div>
 
 <script>
     const video = document.getElementById('video');
-    const canvas = document.getElementById('capture-canvas');
     const photo = document.getElementById('captured-photo');
-    const userNameDisplay = document.getElementById('user-name-display');
+    let userName = "訪客";
 
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) liff.getProfile().then(p => { userNameDisplay.innerText = p.displayName + "，歡迎回來"; });
+        if (liff.isLoggedIn()) liff.getProfile().then(p => { 
+            userName = p.displayName;
+            document.getElementById('user-name-display').innerText = userName + "，歡迎回來"; 
+        });
     });
 
     async function grantAndStart() {
@@ -134,11 +141,10 @@
 
     function triggerCapture() {
         document.getElementById('global-flash').classList.add('flash-active');
-        // 抓取正確影片尺寸避免拉長
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        photo.src = canvas.toDataURL('image/png');
+        const c = document.createElement('canvas');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+        c.getContext('2d').drawImage(video, 0, 0);
+        photo.src = c.toDataURL('image/png');
         setTimeout(() => {
             document.getElementById('global-flash').classList.remove('flash-active');
             switchStep('step-1', 'step-2');
@@ -148,7 +154,7 @@
 
     function showFinalReport() {
         switchStep('step-2', 'step-3');
-        setTimeout(initChart, 500);
+        setTimeout(initCharts, 500);
     }
 
     function switchStep(outId, inId) {
@@ -156,34 +162,31 @@
         document.getElementById(inId).style.display = 'block';
     }
 
-    function initChart() {
-        new Chart(document.getElementById('skinChart'), {
+    function initCharts() {
+        const data = [8, 5, 4, 6, 7];
+        const config = {
             type: 'radar',
             data: {
                 labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
-                datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.2)', borderColor: '#d4a373' }]
+                datasets: [{ data: data, backgroundColor: 'rgba(212, 163, 115, 0.2)', borderColor: '#d4a373' }]
             },
-            options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0, max: 10 } } }
-        });
+            options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } }
+        };
+        new Chart(document.getElementById('skinChart'), config);
+        new Chart(document.getElementById('exportChart'), config);
     }
 
-    function takeScreenshot() {
-        const target = document.getElementById('main-report-card');
-        const btn = document.getElementById('download-btn');
-        btn.style.display = 'none'; // 隱藏按鈕避免入鏡
-
-        html2canvas(target, { 
-            scale: 2, 
-            useCORS: true, 
-            backgroundColor: "#faf9f6",
-            scrollY: -window.scrollY // 修正捲動造成的截圖偏移
-        }).then(cvs => {
+    function generateSquareImage() {
+        document.getElementById('export-photo').src = photo.src;
+        document.getElementById('export-user-name').innerText = "姓名: " + userName;
+        
+        const container = document.getElementById('export-container');
+        html2canvas(container, { scale: 2 }).then(cvs => {
             const link = document.createElement('a');
-            link.download = 'Skin_Report.png';
-            link.href = cvs.toDataURL('image/png');
+            link.download = 'SkinCard_Square.png';
+            link.href = cvs.toDataURL();
             link.click();
-            btn.style.display = 'block';
-            alert("報告圖片儲存成功！");
+            alert("正方形小卡已產出！");
         });
     }
 </script>
