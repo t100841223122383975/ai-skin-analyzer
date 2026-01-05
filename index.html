@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚檢測系統</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <title>AI 肌膚檢測系統 - 專業版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --gold: #d4af37; --white-glass: rgba(255, 255, 255, 0.92); }
+        :root { --gold: #d4a373; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; }
         
         body { 
             margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; font-family: sans-serif;
-            background-image: url('background.jpg'); /* 這裡會讀取您的新背景圖 */
-            background-size: cover; background-position: center;
-            background-attachment: fixed; overflow: hidden;
+            min-height: 100vh; font-family: 'PingFang TC', sans-serif;
+            background: #faf9f6; overflow-x: hidden;
         }
 
-        /* 全螢幕閃光：確保 z-index 最高 */
+        /* 全螢幕閃光 */
         #global-flash {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: white; opacity: 0; pointer-events: none; z-index: 9999;
@@ -28,40 +25,37 @@
 
         .card { 
             background: var(--white-glass); border-radius: 30px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15); width: 85%; max-width: 400px; 
-            height: 520px; position: relative; overflow: hidden; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 90%; max-width: 450px; 
+            min-height: 550px; position: relative; overflow-y: auto; overflow-x: hidden;
             display: flex; flex-direction: column; backdrop-filter: blur(12px);
-            z-index: 10;
+            z-index: 10; padding: 20px; box-sizing: border-box;
         }
 
         .step { 
-            padding: 25px; width: 100%; box-sizing: border-box;
-            position: absolute; top: 0; left: 0; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease; /* 原地淡出：只改透明度 */
+            width: 100%; box-sizing: border-box;
+            transition: opacity 0.6s ease;
+            display: none; /* 預設不顯示 */
         }
 
-        .hidden { opacity: 0; pointer-events: none; }
-        .visible { opacity: 1; pointer-events: auto; }
+        .visible { display: block; opacity: 1; }
+        .hidden { display: none; opacity: 0; }
 
         .video-container { 
-            width: 100%; height: 280px; background: #000; border-radius: 20px; 
+            width: 100%; height: 350px; background: #000; border-radius: 20px; 
             overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px;
         }
         video { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-gold { 
-            background: var(--gold); color: white; border: none; padding: 14px 40px; 
-            border-radius: 30px; cursor: pointer; width: 100%; font-size: 1.1rem; 
-            font-weight: bold; transition: 0.3s;
+            background: var(--gold); color: white; border: none; padding: 14px; 
+            border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; 
+            font-weight: bold; transition: 0.3s; margin-top: 10px;
         }
 
-        .question { width: 100%; margin-bottom: 15px; text-align: left; }
-        label { font-weight: bold; color: var(--gold); display: block; margin-bottom: 8px; }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); font-size: 16px; background: white; }
-
-        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 1000; animation: fly 1s forwards; }
-        @keyframes fly { 0% { opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
+        /* 報告內部卡片樣式 */
+        .report-sub-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 12px; background: var(--accent); font-size: 12px; margin: 2px; color: #8a6d3b; }
+        .match-score { color: var(--gold); font-weight: bold; font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -70,48 +64,70 @@
 
 <div class="card">
     <div id="step-0" class="step visible">
-        <h2 style="color: var(--gold);">開始檢測</h2>
-        <p style="text-align:center; color:#555; line-height:1.6;">點擊確認後將開啟相機<br>體驗專業 AI 肌膚掃描</p>
-        <button class="btn-gold" onclick="grantAndStart()">同意並開啟相機</button>
+        <h2 style="text-align:center; color: var(--gold);">AI 肌膚實驗室</h2>
+        <p style="text-align:center; color:#555; line-height:1.6;">準備好了解您的肌膚真相嗎？<br>點擊下方按鈕開始專業掃描</p>
+        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
     </div>
 
-    <div id="step-1" class="step hidden">
-        <h3 style="color: var(--gold); margin-bottom:15px;">請將臉部對準</h3>
+    <div id="step-1" class="step">
+        <h3 style="color: var(--gold); text-align:center;">請對準虛線框</h3>
         <div class="video-container">
             <video id="video" playsinline></video>
         </div>
         <button class="btn-gold" onclick="triggerCapture()">📷 拍照分析</button>
     </div>
 
-    <div id="step-2" class="step hidden">
-        <h2 style="color: var(--gold); margin-bottom:15px;">AI 分析中</h2>
-        <div class="question">
-            <label>膚質類型</label>
-            <select id="user-skin"><option>乾性</option><option>油性</option><option>混合性</option></select>
+    <div id="step-2" class="step">
+        <h2 style="color: var(--gold); text-align:center;">分析中...</h2>
+        <p style="text-align:center; color:#666;">請填寫基礎資訊以優化精準度</p>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:bold; color:var(--gold);">您的膚質</label>
+            <select id="user-skin" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-top:5px;">
+                <option>混合性</option><option>油性</option><option>乾性</option>
+            </select>
         </div>
-        <div class="question">
-            <label>年齡區間</label>
-            <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
-        </div>
-        <button class="btn-gold" onclick="showFinalReport()">查看報告</button>
+        <button class="btn-gold" onclick="showFinalReport()">查看分析報告</button>
     </div>
 
-    <div id="step-3" class="step hidden">
-        <h2 style="color:var(--gold);">檢測報告</h2>
-        <div id="report-content" style="text-align:left; line-height: 1.8; color:#333; font-size: 0.95rem;"></div>
-        <button class="btn-gold" onclick="location.reload()" style="margin-top:20px;">重新檢測</button>
+    <div id="step-3" class="step">
+        <h2 style="text-align: center; margin-top:0;">AI 分析報告</h2>
+
+        <div class="report-sub-card" style="background: #fff0eb;">
+            <h3 style="margin-top:0; font-size:1rem;">A. 氣色急救站</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>今日活力指數: <strong style="font-size:1.2rem;">78</strong></div>
+                <div class="tag">狀態不佳</div>
+            </div>
+            <p style="font-size:0.9rem; margin-top:10px;">💡 急救行動：1. 多喝水 2. 保濕面膜</p>
+        </div>
+
+        <div class="report-sub-card">
+            <h3 style="margin-top:0; font-size:1rem;">B. 深度問題偵測</h3>
+            <canvas id="skinChart" style="max-height: 250px;"></canvas>
+            <p style="font-size:0.9rem; margin-top:10px;">⚠️ 主要問題：<strong style="color: #d9534f;">發炎痘痘 (6.8分)</strong></p>
+            <p style="font-size:0.85rem; color:#666;">主要位置：T字部位</p>
+        </div>
+
+        <div class="report-sub-card">
+            <h3 style="margin-top:0; font-size:1rem;">C. 成分處方籤</h3>
+            <p style="font-size:0.85rem;">針對您的問題，建議使用：</p>
+            <div class="tag">水楊酸 (代謝油脂)</div>
+            <div class="tag">維生素 B5 (舒緩修復)</div>
+            <p style="font-size:0.75rem; color:#999; margin-top:10px;">*注意：A醇類建議夜間使用</p>
+        </div>
+
+        <button class="btn-gold" onclick="location.reload()" style="background: #999;">重新檢測</button>
     </div>
 </div>
 
-<div id="sparkle-container"></div>
-
 <script>
     const video = document.getElementById('video');
-    let userProfile = { displayName: "訪客" };
+    let userProfile = { displayName: "大師" };
 
+    // 初始化 LIFF (如果有的話)
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) liff.getProfile().then(p => { userProfile = p; });
-    });
+    }).catch(err => console.log("LIFF 載入失敗或不在 Line 環境中"));
 
     async function grantAndStart() {
         try {
@@ -120,51 +136,61 @@
             video.play();
             switchStep('step-0', 'step-1');
         } catch (e) {
-            alert("請允許相機權限以使用此功能");
+            alert("請允許相機權限以進行膚況掃描");
         }
     }
 
     function triggerCapture() {
-        // 執行全螢幕閃光
+        // 1. 全螢幕閃光
         const flash = document.getElementById('global-flash');
         flash.classList.add('flash-active');
         
+        // 2. 延遲後轉場
         setTimeout(() => {
             flash.classList.remove('flash-active');
-            // 原地淡出轉場
             switchStep('step-1', 'step-2');
-        }, 200);
+        }, 250);
     }
 
     function showFinalReport() {
-        const score = Math.floor(Math.random() * 8 + 92);
-        document.getElementById('report-content').innerHTML = `
-            <b>👑 您好，${userProfile.displayName}</b><br>
-            ✨ 水玉光得分：${score} 分<br>
-            ✨ 膚質狀態：${document.getElementById('user-skin').value}<br>
-            💡 建議：數據反映您的狀況良好，請持續維持目前的保養習慣。
-        `;
         switchStep('step-2', 'step-3');
+        // 初始化圖表
+        setTimeout(initChart, 400); 
     }
 
     function switchStep(outId, inId) {
-        document.getElementById(outId).classList.replace('visible', 'hidden');
-        // 等待淡出效果進行到一半時，讓新的淡入
+        const outStep = document.getElementById(outId);
+        const inStep = document.getElementById(inId);
+        
+        outStep.style.opacity = '0';
         setTimeout(() => {
-            document.getElementById(inId).classList.replace('hidden', 'visible');
-        }, 300);
+            outStep.classList.remove('visible');
+            outStep.classList.add('hidden');
+            inStep.classList.remove('hidden');
+            inStep.classList.add('visible');
+            inStep.style.opacity = '1';
+        }, 600);
     }
 
-    document.addEventListener('mousemove', e => spawn(e));
-    document.addEventListener('touchmove', e => spawn(e.touches[0]), {passive: true});
-    function spawn(e) {
-        const s = document.createElement('div');
-        s.className = 'sparkle';
-        s.style.left = e.clientX + 'px'; s.style.top = e.clientY + 'px';
-        s.style.setProperty('--mx', (Math.random()-0.5)*120+'px');
-        s.style.setProperty('--my', (Math.random()-0.5)*120+'px');
-        document.getElementById('sparkle-container').appendChild(s);
-        setTimeout(() => s.remove(), 1000);
+    function initChart() {
+        const ctx = document.getElementById('skinChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
+                datasets: [{
+                    label: '您的膚況分數',
+                    data: [8, 5, 4, 6, 7],
+                    backgroundColor: 'rgba(212, 163, 115, 0.2)',
+                    borderColor: '#d4a373',
+                    pointBackgroundColor: '#d4a373'
+                }]
+            },
+            options: { 
+                scales: { r: { suggestMin: 0, suggestMax: 10, ticks: { display: false } } },
+                plugins: { legend: { display: false } }
+            }
+        });
     }
 </script>
 </body>
