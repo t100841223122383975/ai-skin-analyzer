@@ -41,16 +41,16 @@
         .visible { display: block; opacity: 1; }
         .hidden { display: none; opacity: 0; }
 
-        /* 相機區 */
-        .video-container { 
-            width: 100%; height: 350px; background: #000; border-radius: 20px; 
+        /* 相機與照片顯示區 */
+        .video-container, .photo-result-container { 
+            width: 100%; height: 300px; background: #000; border-radius: 20px; 
             overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px;
             position: relative;
         }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
         .face-guide {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 200px; height: 260px; border: 2px dashed rgba(255,255,255,0.6); border-radius: 50%;
+            width: 180px; height: 240px; border: 2px dashed rgba(255,255,255,0.6); border-radius: 50%;
         }
 
         /* 按鈕樣式 */
@@ -74,11 +74,15 @@
 
         /* 隱藏滾動條 */
         .card::-webkit-scrollbar { width: 0; background: transparent; }
+        
+        /* 隱藏截圖用的畫布 */
+        #capture-canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div id="global-flash"></div>
+<canvas id="capture-canvas"></canvas>
 
 <div class="card">
     <div id="step-0" class="step visible">
@@ -112,7 +116,11 @@
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; margin-bottom: 25px;">AI 分析報告</h2>
+        <h2 style="text-align: center; margin-bottom: 20px;">AI 分析報告</h2>
+
+        <div class="photo-result-container">
+            <img id="captured-photo" alt="您的分析照片">
+        </div>
 
         <div class="report-sub-card" style="background: #fff0eb; border: 1px solid #ffe0d5;">
             <h3 style="font-size:1.1rem;">A. 氣色急救站</h3>
@@ -120,7 +128,7 @@
                 <div>今日活力指數: <strong style="font-size:1.4rem;">78</strong></div>
                 <div class="tag" style="background:#ffccbc; color:#d84315;">狀態不佳</div>
             </div>
-            <p style="font-size:0.9rem; margin-top:10px;">💡 急急救行動：1. 多喝水 2. 保濕面膜</p>
+            <p style="font-size:0.9rem; margin-top:10px;">💡 急救行動：1. 多喝水 2. 保濕面膜</p>
         </div>
 
         <div class="report-sub-card">
@@ -157,22 +165,17 @@
 <script>
     const video = document.getElementById('video');
     const userNameDisplay = document.getElementById('user-name-display');
+    const captureCanvas = document.getElementById('capture-canvas');
+    const capturedPhoto = document.getElementById('captured-photo');
 
-    // 初始化 LIFF 並獲取使用者資訊
+    // 初始化 LIFF
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) {
             liff.getProfile().then(profile => {
-                // 成功獲取後，更新頁面上的變數文字
                 userNameDisplay.innerText = `${profile.displayName}，歡迎回來`;
             });
-        } else {
-            // 如果沒登入（例如測試時），則維持預設的「大師」
-            userNameDisplay.innerText = "大師，歡迎回來";
         }
-    }).catch(err => {
-        console.log("LIFF 載入失敗", err);
-        userNameDisplay.innerText = "大師，歡迎回來";
-    });
+    }).catch(err => console.log("LIFF 失敗"));
 
     async function grantAndStart() {
         try {
@@ -181,17 +184,34 @@
             video.play();
             switchStep('step-0', 'step-1');
         } catch (e) {
-            alert("請允許相機權限以進行膚況掃描。");
+            alert("請允許相機權限");
         }
     }
 
+    // 拍照並截圖
     function triggerCapture() {
+        // 1. 執行閃光特效
         const flash = document.getElementById('global-flash');
         flash.classList.add('flash-active');
         
+        // 2. 將影片畫面畫到 canvas 並轉成圖片 (未來這張 base64 圖片可以傳給後端)
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        const ctx = captureCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        
+        const imageData = captureCanvas.toDataURL('image/png');
+        capturedPhoto.src = imageData; // 將照片塞入 Step 3 的圖片框中
+
+        // 3. 轉場
         setTimeout(() => {
             flash.classList.remove('flash-active');
             switchStep('step-1', 'step-2');
+            // 停止攝影機節省能耗
+            const stream = video.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
         }, 300);
     }
 
@@ -203,7 +223,6 @@
     function switchStep(outId, inId) {
         const outStep = document.getElementById(outId);
         const inStep = document.getElementById(inId);
-        
         outStep.style.opacity = '0';
         setTimeout(() => {
             outStep.classList.remove('visible');
@@ -231,12 +250,7 @@
             },
             options: { 
                 scales: { 
-                    r: { 
-                        min: 0, 
-                        max: 10,
-                        ticks: { stepSize: 2, display: false },
-                        grid: { color: 'rgba(0,0,0,0.05)' }
-                    } 
+                    r: { min: 0, max: 10, ticks: { display: false } } 
                 },
                 plugins: { legend: { display: false } }
             }
