@@ -84,7 +84,7 @@
     <div id="step-0" class="step visible">
         <h2 style="text-align:center; color: var(--gold); margin-top: 40px;">AI 肌膚實驗室</h2>
         <div style="text-align:center; margin: 30px 0;">
-            <p style="font-size: 1.1rem;">大師，歡迎回來</p>
+            <p id="user-name-display" style="font-size: 1.1rem;">大師，歡迎回來</p>
             <p style="color:#888;">點擊開始專業肌膚掃描分析</p>
         </div>
         <button class="btn-gold" onclick="grantAndStart()" style="margin-top: 100px;">開始檢測</button>
@@ -115,12 +115,12 @@
         <h2 style="text-align: center; margin-bottom: 25px;">AI 分析報告</h2>
 
         <div class="report-sub-card" style="background: #fff0eb; border: 1px solid #ffe0d5;">
-            <h3 style="font-size:1.1rem; display:flex; align-items:center;">A. 氣色急救站</h3>
+            <h3 style="font-size:1.1rem;">A. 氣色急救站</h3>
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div>今日活力指數: <strong style="font-size:1.4rem;">78</strong></div>
                 <div class="tag" style="background:#ffccbc; color:#d84315;">狀態不佳</div>
             </div>
-            <p style="font-size:0.9rem; margin-top:10px;">💡 急救行動：1. 多喝水 2. 保濕面膜</p>
+            <p style="font-size:0.9rem; margin-top:10px;">💡 急急救行動：1. 多喝水 2. 保濕面膜</p>
         </div>
 
         <div class="report-sub-card">
@@ -156,13 +156,24 @@
 
 <script>
     const video = document.getElementById('video');
+    const userNameDisplay = document.getElementById('user-name-display');
 
-    // 初始化 LIFF (如果有的話)
-    if (typeof liff !== 'undefined') {
-        liff.init({ liffId: "2008812290-AidCIwjS" }).catch(err => console.log("LIFF 載入失敗"));
-    }
+    // 初始化 LIFF 並獲取使用者資訊
+    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
+        if (liff.isLoggedIn()) {
+            liff.getProfile().then(profile => {
+                // 成功獲取後，更新頁面上的變數文字
+                userNameDisplay.innerText = `${profile.displayName}，歡迎回來`;
+            });
+        } else {
+            // 如果沒登入（例如測試時），則維持預設的「大師」
+            userNameDisplay.innerText = "大師，歡迎回來";
+        }
+    }).catch(err => {
+        console.log("LIFF 載入失敗", err);
+        userNameDisplay.innerText = "大師，歡迎回來";
+    });
 
-    // 請求相機權限並開始
     async function grantAndStart() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -170,11 +181,10 @@
             video.play();
             switchStep('step-0', 'step-1');
         } catch (e) {
-            alert("請允許相機權限以進行膚況掃描。如果是 LINE 內開啟，請確保已同意授權。");
+            alert("請允許相機權限以進行膚況掃描。");
         }
     }
 
-    // 拍照並觸發閃光燈
     function triggerCapture() {
         const flash = document.getElementById('global-flash');
         flash.classList.add('flash-active');
@@ -185,14 +195,11 @@
         }, 300);
     }
 
-    // 顯示報告並啟動圖表
     function showFinalReport() {
         switchStep('step-2', 'step-3');
-        // 延遲繪製確保寬度正確計算
         setTimeout(initChart, 600); 
     }
 
-    // 轉場邏輯
     function switchStep(outId, inId) {
         const outStep = document.getElementById(outId);
         const inStep = document.getElementById(inId);
@@ -207,7 +214,6 @@
         }, 500);
     }
 
-    // 初始化雷達圖
     function initChart() {
         const ctx = document.getElementById('skinChart').getContext('2d');
         new Chart(ctx, {
