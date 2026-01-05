@@ -3,98 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚檢測 - 報告儲存版</title>
+    <title>AI 肌膚檢測系統 - 專業完整版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.0.0-rc.5/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --gold: #d4a373; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; }
-        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: #faf9f6; overflow-x: hidden; }
+        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'PingFang TC', sans-serif; background: #faf9f6; }
         
         #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
         .flash-active { animation: screenFlash 0.3s ease-out; }
         @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
-        /* 主容器，現在就是我們要截圖的目標 */
         .card { 
             background: var(--white-glass); border-radius: 30px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 92%; max-width: 450px; 
-            min-height: 85vh; /* 改為 min-height 讓內容可以完整展開 */
-            position: relative; overflow-y: auto; 
-            padding: 25px; box-sizing: border-box; backdrop-filter: blur(12px);
-            z-index: 10;
+            height: 85vh; max-height: 750px; position: relative; overflow-y: auto; 
+            display: flex; flex-direction: column; backdrop-filter: blur(12px);
+            z-index: 10; padding: 25px; box-sizing: border-box;
         }
+
         .step { width: 100%; transition: opacity 0.6s ease; display: none; }
         .visible { display: block; opacity: 1; }
+        
+        .video-container, .photo-result-container { 
+            width: 100%; height: 280px; background: #000; border-radius: 20px; 
+            overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px; position: relative;
+        }
+        video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
+        .face-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 180px; height: 240px; border: 2px dashed rgba(255,255,255,0.6); border-radius: 50%; }
 
-        .photo-demo-zone { width: 100%; height: 250px; background: #eee; border-radius: 20px; overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px; }
-        #captured-photo { width: 100%; height: 100%; object-fit: cover; display: none; }
-        
-        .video-container { width: 100%; height: 300px; background: #000; border-radius: 20px; overflow: hidden; position: relative; margin-bottom: 20px; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 14px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; transition: background 0.3s; }
-        .btn-gold:hover { background: #c29a6b; } /* 添加 hover 效果 */
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 14px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
         .report-sub-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-        .tag { display: inline-block; padding: 5px 12px; border-radius: 15px; background: var(--accent); font-size: 12px; margin: 3px; color: #8a6d3b; }
-
-        h2, h3 { margin-top: 0; color: #333; }
-        p { margin: 5px 0; line-height: 1.5; color: #555; }
+        .tag { display: inline-block; padding: 5px 12px; border-radius: 15px; background: var(--accent); font-size: 12px; margin: 3px; color: #8a6d3b; font-weight: 500; }
+        
+        /* 隱藏截圖用的畫布 */
+        #capture-canvas { display: none; }
+        .card::-webkit-scrollbar { width: 0; }
     </style>
 </head>
 <body>
 
 <div id="global-flash"></div>
-<canvas id="capture-canvas" style="display:none;"></canvas>
+<canvas id="capture-canvas"></canvas>
 
-<div class="card" id="report-card-to-capture"> <div id="step-0" class="step visible">
-        <h2 style="text-align:center; color: var(--gold);">AI 肌膚實驗室</h2>
-        <p id="user-name-display" style="text-align:center;">大師，歡迎回來</p>
-        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
+<div class="card" id="capture-area">
+    <div id="step-0" class="step visible">
+        <h2 style="text-align:center; color: var(--gold); margin-top: 40px;">AI 肌膚實驗室</h2>
+        <div style="text-align:center; margin: 30px 0;">
+            <p id="user-name-display" style="font-size: 1.1rem;">大師，歡迎回來</p>
+            <p style="color:#888;">點擊開始專業肌膚掃描分析</p>
+        </div>
+        <button class="btn-gold" onclick="grantAndStart()" style="margin-top: 100px;">開始檢測</button>
     </div>
 
     <div id="step-1" class="step">
-        <h3 style="text-align:center; color: var(--gold);">請對準拍攝</h3>
-        <div class="video-container"><video id="video" playsinline></video></div>
+        <h3 style="color: var(--gold); text-align:center;">請對準拍攝</h3>
+        <div class="video-container">
+            <video id="video" playsinline></video>
+            <div class="face-guide"></div>
+        </div>
         <button class="btn-gold" onclick="triggerCapture()">📷 拍照分析</button>
     </div>
 
     <div id="step-2" class="step">
-        <h2 style="text-align:center; color: var(--gold);">AI 分析中...</h2>
-        <button class="btn-gold" onclick="showFinalReport()">查看分析報告</button>
+        <h2 style="color: var(--gold); text-align:center;">AI 分析中</h2>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:bold; color:var(--gold);">膚質類型</label>
+            <select id="user-skin" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--gold); margin-top:8px;">
+                <option>混合性</option><option>油性</option><option>乾性</option>
+            </select>
+        </div>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:bold; color:var(--gold);">年齡區間</label>
+            <select id="user-age" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--gold); margin-top:8px;">
+                <option>20-30</option><option>31-40</option><option>41+</option>
+            </select>
+        </div>
+        <button class="btn-gold" onclick="showFinalReport()">查看報告</button>
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; margin-bottom: 20px;">AI 分析報告</h2>
+        <h2 style="text-align: center;">AI 分析報告</h2>
         
-        <div class="photo-demo-zone">
-            <div id="photo-placeholder" style="text-align:center; padding-top:100px; color:#999;">照片處理中...</div>
+        <div class="photo-result-container">
             <img id="captured-photo" alt="檢測照片">
         </div>
 
         <div class="report-sub-card" style="background: #fff0eb;">
             <h3>A. 氣色急救站</h3>
-            <p>活力指數: <strong>78</strong></p>
-            <p>💡 建議：多喝水、保濕面膜</p>
+            <p>今日活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
+            <p>💡 急救行動：1. 多喝水 2. 保濕面膜</p>
         </div>
 
         <div class="report-sub-card">
-            <h3>B. 深度偵測</h3>
+            <h3>B. 深度問題偵測</h3>
             <canvas id="skinChart"></canvas>
+            <p>⚠️ 偵測到主要問題：<strong style="color:#d9534f;">發炎痘痘 (6.8分)</strong></p>
+        </div>
+
+        <div class="report-sub-card">
+            <h3>C. 成分處方籤</h3>
+            <p>建議使用：</p>
+            <div class="tag">水楊酸</div><div class="tag">維生素 B5</div>
+            <p><small>*注意：A醇類建議夜間使用</small></p>
         </div>
 
         <div class="report-sub-card">
             <h3>D. 智慧選品</h3>
-            <div style="border-left: 4px solid var(--gold); padding-left:10px;">
+            <div style="border-left: 4px solid var(--gold); padding-left: 10px;">
                 <p><strong>理膚寶水 Duo+</strong></p>
                 <p style="color:var(--gold); font-weight:bold;">匹配度：94%</p>
-                <button class="btn-gold" style="font-size:0.8rem; padding:8px;">前往購買</button>
             </div>
         </div>
-        
-        <button class="btn-gold" onclick="saveReportAsImage()" style="background: #5cb85c; margin-top: 20px;">
-            ⬇️ 儲存報告圖片
-        </button>
+
+        <button class="btn-gold" id="btn-save" onclick="downloadReport()" style="background: #5cb85c;">💾 儲存報告圖片</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
     </div>
 </div>
@@ -103,17 +126,11 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('capture-canvas');
     const photo = document.getElementById('captured-photo');
-    const placeholder = document.getElementById('photo-placeholder');
     const userNameDisplay = document.getElementById('user-name-display');
 
-    // 初始化 LIFF
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) {
-            liff.getProfile().then(profile => {
-                userNameDisplay.innerText = `${profile.displayName}，歡迎回來`;
-            });
-        }
-    }).catch(err => console.log("LIFF 失敗"));
+        if (liff.isLoggedIn()) liff.getProfile().then(p => { userNameDisplay.innerText = p.displayName + "，歡迎回來"; });
+    });
 
     async function grantAndStart() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -124,28 +141,19 @@
 
     function triggerCapture() {
         document.getElementById('global-flash').classList.add('flash-active');
-        
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        const data = canvas.toDataURL('image/png');
-        photo.src = data;
-        photo.style.display = 'block';
-        placeholder.style.display = 'none';
-
+        photo.src = canvas.toDataURL('image/png');
         setTimeout(() => {
             document.getElementById('global-flash').classList.remove('flash-active');
             switchStep('step-1', 'step-2');
-            if (video.srcObject) { // 確保有 stream 才停止
-                video.srcObject.getTracks().forEach(t => t.stop()); 
-            }
+            video.srcObject.getTracks().forEach(t => t.stop());
         }, 300);
     }
 
     function showFinalReport() {
         switchStep('step-2', 'step-3');
-        setTimeout(initChart, 500);
+        setTimeout(initChart, 600);
     }
 
     function switchStep(outId, inId) {
@@ -158,43 +166,24 @@
             type: 'radar',
             data: {
                 labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
-                datasets: [{
-                    data: [8, 5, 4, 6, 7],
-                    backgroundColor: 'rgba(212, 163, 115, 0.2)',
-                    borderColor: '#d4a373'
-                }]
+                datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.2)', borderColor: '#d4a373' }]
             },
-            options: { plugins: { legend: { display: false } } }
+            options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } }
         });
     }
 
-    // 新增的儲存報告為圖片的函式
-    function saveReportAsImage() {
-        // 確保雷達圖已經渲染完成
-        const chartCanvas = document.getElementById('skinChart');
-        if (!chartCanvas || chartCanvas.width === 0) {
-            alert('圖表尚未完全載入，請稍候再試。');
-            return;
-        }
+    function downloadReport() {
+        const area = document.getElementById('capture-area');
+        const btnSave = document.getElementById('btn-save');
+        btnSave.style.display = 'none'; // 截圖前暫時隱藏按鈕
 
-        const reportCard = document.getElementById('report-card-to-capture'); // 鎖定整個報告卡片
-        
-        html2canvas(reportCard, {
-            scale: 2, // 提高解析度，讓圖片更清晰
-            useCORS: true, // 處理跨域圖片 (如果報告中有外部圖片，此設定重要)
-            backgroundColor: '#faf9f6', // 設定背景色，避免透明
-            ignoreElements: (element) => { // 忽略不應該出現在圖片中的元素，例如滾動條
-                return element.tagName === 'BUTTON' && element.textContent.includes('儲存報告圖片');
-            }
-        }).then(canvas => {
-            const image = canvas.toDataURL('image/png');
+        html2canvas(area, { scale: 2, useCORS: true, backgroundColor: "#faf9f6" }).then(cvs => {
             const link = document.createElement('a');
-            link.download = 'AI_Skin_Report.png'; // 下載的檔案名稱
-            link.href = image;
-            document.body.appendChild(link);
+            link.download = 'MySkinReport.png';
+            link.href = cvs.toDataURL();
             link.click();
-            document.body.removeChild(link);
-            alert('報告圖片已下載！');
+            btnSave.style.display = 'block'; // 截圖完顯示回來
+            alert("報告已產出！大師，請查看下載資料夾。");
         });
     }
 </script>
