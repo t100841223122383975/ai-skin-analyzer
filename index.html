@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚實驗室 - 完整版</title>
+    <title>AI 肌膚實驗室 - 完整豪華版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --gold: #d4a373; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; --green-soft: #8eb09b; }
-        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; }
+        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; }
         
+        /* 閃光燈 */
         #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
         .flash-active { animation: screenFlash 0.3s ease-out; }
         @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+        /* 亮粉特效 */
+        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 10000; animation: fly 1s forwards; }
+        @keyframes fly { 0% { opacity: 1; transform: scale(1); } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
 
         .card { 
             background: var(--white-glass); border-radius: 30px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 92%; max-width: 450px; 
             max-height: 90vh; position: relative; overflow-y: auto; 
-            display: flex; flex-direction: column; padding: 25px; box-sizing: border-box;
+            display: flex; flex-direction: column; padding: 25px; box-sizing: border-box; z-index: 10;
         }
         .step { width: 100%; display: none; opacity: 0; transition: opacity 0.5s ease; }
         .visible { display: block; opacity: 1; }
@@ -36,33 +41,22 @@
         label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; }
         select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); margin-top: 5px; background: white; }
 
-        /* 導出圖片用的隱藏正方形排版區 */
-        #export-container { position: absolute; left: -9999px; top: -9999px; width: 600px; height: 600px; background: #fff; padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     </style>
 </head>
 <body>
 
 <div id="global-flash"></div>
-
-<div id="export-container">
-    <div style="border-radius: 20px; overflow: hidden; height: 100%;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
-    <div style="display: flex; flex-direction: column; justify-content: center;">
-        <h2 style="color:var(--gold); margin:0;">AI 肌膚分析小卡</h2>
-        <p id="export-user-name" style="font-weight:bold;"></p>
-        <hr style="width:100%; border:0.5px solid #eee; margin:15px 0;">
-        <p>活力指數: <strong>78</strong></p>
-        <canvas id="exportChart" width="250" height="250"></canvas>
-    </div>
-</div>
+<div id="sparkle-container"></div>
 
 <div class="card" id="main-ui-container">
     <div id="step-0" class="step visible">
         <h2 style="text-align:center; color: var(--gold); margin-top: 20px;">AI 美肌實驗室</h2>
         <div style="text-align:center; margin: 30px 0;">
             <p id="user-name-display" style="font-size: 1.1rem;">訪客，歡迎回來</p>
-            <p style="color:#888;">開始專業掃描分析</p>
+            <p style="color:#888;">請開啟您的專屬膚況掃描</p>
         </div>
-        <button class="btn-gold" onclick="grantAndStart()">立即檢測</button>
+        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
     </div>
 
     <div id="step-1" class="step">
@@ -77,12 +71,12 @@
         <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
         <label>年齡區間</label>
         <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
-        <button class="btn-gold" onclick="showFinalReport()" style="margin-top: 30px;">查看報告</button>
+        <button class="btn-gold" onclick="showFinalReport()" style="margin-top: 30px;">生成報告</button>
     </div>
 
     <div id="step-3" class="step">
         <h2 style="text-align: center; margin-bottom: 15px;">AI 分析報告</h2>
-        <div class="photo-container"><img id="captured-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+        <div class="photo-container"><img id="captured-photo"></div>
         
         <div class="report-sub-card" style="background: #fff0eb;">
             <h3>A. 氣色急救站</h3>
@@ -100,7 +94,6 @@
 
         <div class="report-sub-card">
             <h3>C. 成分處方籤</h3>
-            <p>針對問題，建議使用：</p>
             <div class="tag">水楊酸 (代謝油脂)</div>
             <div class="tag">維生素 B5 (舒緩修復)</div>
             <button class="btn-detail" onclick="switchStep('step-3', 'step-c-detail')">生活習慣小秘訣 →</button>
@@ -115,7 +108,7 @@
             <button class="btn-detail" onclick="switchStep('step-3', 'step-d-detail')">查看推薦詳情 →</button>
         </div>
 
-        <button class="btn-gold" style="background: #5cb85c;" onclick="generateSquareImage()">💾 儲存正方形小卡</button>
+        <button class="btn-gold" style="background: #5cb85c;" onclick="generateSquareImage()">💾 儲存檢測小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
     </div>
 
@@ -135,17 +128,42 @@
     <div id="step-d-detail" class="step"><h2 style="text-align:center;">D 區詳情</h2><button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回</button></div>
 </div>
 
+<div id="export-container">
+    <div style="border-radius: 20px; overflow: hidden; height: 100%;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+    <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px;">
+        <h2 style="color:var(--gold); margin:0;">AI 肌膚分析報告</h2>
+        <p id="export-user-name" style="font-weight:bold;"></p>
+        <hr style="border:0.5px solid #eee; margin:15px 0;">
+        <p>今日活力指數: <strong>78</strong></p>
+        <canvas id="exportChart" width="250" height="250"></canvas>
+    </div>
+</div>
+
 <script>
     const video = document.getElementById('video');
     const photo = document.getElementById('captured-photo');
     let userName = "訪客";
 
+    // LIFF 初始化
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) liff.getProfile().then(p => { 
             userName = p.displayName;
             document.getElementById('user-name-display').innerText = userName + "，歡迎回來"; 
         });
     });
+
+    // 亮粉特效實作
+    document.addEventListener('mousemove', e => spawn(e.clientX, e.clientY));
+    document.addEventListener('touchmove', e => spawn(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
+    function spawn(x, y) {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = x + 'px'; s.style.top = y + 'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*100+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*100+'px');
+        document.getElementById('sparkle-container').appendChild(s);
+        setTimeout(() => s.remove(), 1000);
+    }
 
     async function grantAndStart() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -198,13 +216,13 @@
 
     function generateSquareImage() {
         document.getElementById('export-photo').src = photo.src;
-        document.getElementById('export-user-name').innerText = "姓名: " + userName;
+        document.getElementById('export-user-name').innerText = "訪客: " + userName;
         html2canvas(document.getElementById('export-container'), { scale: 2 }).then(cvs => {
             const link = document.createElement('a');
-            link.download = 'SkinReport_Card.png';
+            link.download = 'MySkinCard.png';
             link.href = cvs.toDataURL();
             link.click();
-            alert("正方形小卡已儲存！");
+            alert("檢測小卡已儲存至您的相簿！");
         });
     }
 </script>
