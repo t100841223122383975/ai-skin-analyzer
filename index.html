@@ -3,215 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚實驗室 - 完整豪華版</title>
+    <title>AI 肌膚實驗室 - 絲滑完整豪華版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; }
+        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; --red-status: #ff5252; --orange-status: #ff9800; --green-status: #4caf50; }
         body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; touch-action: none; }
         
         /* 亮粉特效 */
         .sparkle { position: fixed; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; box-shadow: 0 0 5px var(--shiny-gold); animation: glitter 1s forwards ease-out; }
         @keyframes glitter { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 20% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { transform: translate(var(--mx), var(--my)) scale(0) rotate(360deg); opacity: 0; } }
 
-        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); z-index: 10; }
-        .step { width: 100%; display: none; opacity: 0; transition: opacity 0.5s ease; }
+        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); z-index: 10; scroll-behavior: smooth; }
+        
+        /* 絲滑淡入淡出 */
+        .step { width: 100%; display: none; opacity: 0; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .visible { display: block; opacity: 1; }
         
-        .photo-container { width: 100%; height: 260px; background: #f0f0f0; border-radius: 25px; overflow: hidden; border: 1px solid var(--accent); margin-bottom: 20px; }
-        video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
+        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(212, 163, 115, 0.1); transition: transform 0.3s ease; text-align: left; }
+        .report-sub-card:active { transform: scale(0.98); }
 
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; letter-spacing: 1px; }
-        .btn-detail-link { background: none; border: none; color: var(--gold); font-size: 0.8rem; cursor: pointer; padding: 0; margin-top: 12px; font-weight: bold; text-decoration: underline; }
+        .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; position: relative; }
+        video, #captured-photo, .captured-photo-sync { width: 100%; height: 100%; object-fit: cover; }
+        .detect-box { position: absolute; border: 2px solid #ff5252; background: rgba(255, 82, 82, 0.1); pointer-events: none; }
+
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn-detail-link { background: none; border: none; color: var(--gold); font-size: 0.8rem; cursor: pointer; padding: 0; margin-top: 10px; font-weight: bold; text-decoration: underline; }
         
-        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(212, 163, 115, 0.1); }
-        .tag { display: inline-block; padding: 5px 12px; border-radius: 12px; background: #fdf6ec; font-size: 11px; margin: 2px; color: #b08d57; font-weight: 500; }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 10px; background: #fdf6ec; font-size: 11px; margin: 2px; color: #b08d57; font-weight: 500; }
+        .icon-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.9rem; }
+        .icon-item span { margin-right: 12px; font-size: 1.4rem; flex-shrink: 0; }
         
-        label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; font-size: 0.85rem; }
-        select { width: 100%; padding: 14px; border-radius: 15px; border: 1px solid #eee; margin-top: 8px; background: white; outline: none; }
-        
-        .icon-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
-        .icon-item span { margin-right: 10px; font-size: 1.2rem; }
+        #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
+        .flash-active { animation: screenFlash 0.3s ease-out; }
+        @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
         #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     </style>
 </head>
 <body>
 
+<div id="global-flash"></div>
 <div id="sparkle-container"></div>
 
-<div class="card">
+<div class="card" id="scroll-box">
     <div id="step-0" class="step visible">
-        <h2 style="text-align:center; color: var(--gold); font-weight: 300; letter-spacing: 4px;">AI 美肌實驗室</h2>
-        <div style="text-align:center; margin: 40px 0;">
-            <p id="user-name-display" style="font-size: 1rem; color: #777;">訪客，歡迎回來</p>
-            <p style="color:#bbb; font-size: 0.75rem;">模擬相機串流中...</p>
-        </div>
-        <button class="btn-gold" onclick="grantAndStart()">開始分析</button>
+        <h2 style="text-align:center; color: var(--gold); margin-top: 20px; letter-spacing: 2px;">AI 美肌實驗室</h2>
+        <div style="text-align:center; margin: 40px 0;"><p id="user-name-display" style="font-size: 1.1rem;">訪客，歡迎回來</p></div>
+        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
     </div>
 
     <div id="step-1" class="step">
-        <h3 style="color: var(--gold); text-align:center; font-weight: 300;">請正對鏡頭拍攝</h3>
-        <div class="photo-container"><video id="video" playsinline></video></div>
-        <button class="btn-gold" onclick="triggerCapture()">擷取影像</button>
+        <h3 style="color: var(--gold); text-align:center;">請對準拍攝</h3>
+        <div class="photo-container"><video id="video" playsinline muted></video></div>
+        <button class="btn-gold" onclick="triggerCapture()">📷 擷取影像</button>
     </div>
 
     <div id="step-2" class="step">
-        <h2 style="color: var(--gold); text-align:center; font-weight: 300;">分析設置</h2>
-        <label>膚質類型</label>
-        <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
-        <label>年齡區間</label>
-        <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
-        <button class="btn-gold" onclick="showFinalReport()">查看報告</button>
+        <h2 style="color: var(--gold); text-align:center;">補充資訊</h2>
+        <div style="margin-top:20px;">
+            <label style="font-weight:bold; color:var(--gold); font-size:0.85rem;">膚質類型</label>
+            <select id="user-skin" style="width:100%; padding:14px; border-radius:15px; border:1px solid #eee; margin-top:8px;"><option>混合性</option><option>油性</option><option>乾性</option></select>
+            <label style="font-weight:bold; color:var(--gold); font-size:0.85rem; display:block; margin-top:15px;">年齡區間</label>
+            <select id="user-age" style="width:100%; padding:14px; border-radius:15px; border:1px solid #eee; margin-top:8px;"><option>20-30</option><option>31-40</option><option>41+</option></select>
+        </div>
+        <button class="btn-gold" onclick="showFinalReport()" style="margin-top:40px;">查看報告</button>
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; font-weight: 300; color: var(--gold);">AI 分析報告</h2>
+        <h2 style="text-align: center; color: var(--gold);">AI 分析報告</h2>
         <div class="photo-container"><img id="captured-photo"></div>
         
-        <div class="report-sub-card" style="background: #fffcf9;">
-            <h4 style="margin:0;">A. 氣色急救站</h4>
-            <p style="font-size: 0.9rem; margin: 10px 0;">今日活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
-            <p style="font-size: 0.85rem; color:#666;">💡 急救行動：1. 多喝水 2. 保濕面膜</p>
-            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-a-detail')">查看詳情 →</button>
+        <div class="report-sub-card" style="background: #fffcf9; display: flex; align-items: center; gap: 15px;">
+            <div style="position: relative; width: 75px; height: 75px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#f8d2c9 78%, #eee 0); border-radius: 50%;">
+                <div style="text-align: center;"><div style="font-size: 1.3rem; font-weight: bold;">78</div><div style="font-size: 0.45rem; color:#999;">活力指數</div></div>
+            </div>
+            <div style="flex-grow: 1;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0; font-size: 0.9rem;">A. 氣色急救站</h4>
+                    <span class="tag" style="background:#f8d2c9; color:#d84315;">狀態不佳</span>
+                </div>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">💡 急救：保濕面膜、多喝水</p>
+                <button class="btn-detail-link" onclick="switchStep('step-3', 'step-a-detail')">查看詳情建議 →</button>
+            </div>
         </div>
 
         <div class="report-sub-card">
-            <h4 style="margin:0;">B. 深度問題偵測</h4>
-            <canvas id="skinChart" style="margin: 15px 0;"></canvas>
+            <h4>B. 深度問題偵測</h4>
+            <canvas id="skinChart" style="max-height: 160px; margin: 10px 0;"></canvas>
             <p style="font-size: 0.85rem;">⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
-            <p style="font-size: 0.8rem; color:#888;">主要位置：T字部位</p>
-            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-b-detail')">數據細節 →</button>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-b-detail')">分析細節數據 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h4 style="margin:0;">C. 成分處方籤</h4>
-            <div style="margin-top:10px;">
-                <span class="tag">水楊酸 (代謝油脂)</span>
-                <span class="tag">維生素 B5 (舒緩修復)</span>
-            </div>
+            <h4>C. 生活習慣建議</h4>
+            <div style="margin-top:8px;"><span class="tag">水楊酸</span><span class="tag">維生素 B5</span></div>
             <p style="font-size:0.75rem; color:#aaa; margin-top:8px;">*注意：A醇類建議夜間使用</p>
-            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-c-detail')">生活小秘訣 →</button>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-c-detail')">查看生活小秘訣 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h4 style="margin:0;">D. 智慧選品</h4>
+            <h4>D. 智慧選品</h4>
             <div style="border-left: 3px solid var(--gold); padding-left: 10px; margin-top:10px;">
-                <p style="font-weight: bold; font-size:0.9rem;">理膚寶水 Effaclar DUO+</p>
-                <p style="color: var(--gold); font-size: 1.1rem; font-weight: bold; margin: 5px 0;">匹配度：94%</p>
-                <p style="font-size: 0.75rem; color:#888;">根據規則：含 B5 + 混合肌</p>
-                <button class="btn-gold" style="font-size:0.8rem; padding:10px;" onclick="window.open('https://www.google.com/search?q=Effaclar+DUO%2B', '_blank')">前往購買 ($1,080)</button>
+                <p style="font-weight:bold; font-size:0.9rem;">理膚寶水 Duo+</p>
+                <p style="color:var(--gold); font-weight:bold; font-size: 1.1rem; margin: 5px 0;">匹配度：94%</p>
             </div>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-d-detail')">查看選品詳情 →</button>
         </div>
 
         <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
     </div>
 
-    <div id="step-c-detail" class="step">
-        <h2 style="text-align:center; color:var(--gold); font-weight: 300;">生活小秘訣</h2>
+    <div id="step-a-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">氣色急救站</h2>
+        <div class="report-sub-card" style="text-align:center;">
+            <div style="width: 100px; height: 100px; background: #fdf2f2; border-radius: 50%; display: inline-block; border: 2px solid #f8d2c9; padding-top:30px; box-sizing: border-box;">
+                <b>4.2 / 10 ⚠️</b><br><small>今天狀態不佳</small>
+            </div>
+            <p style="margin-top:15px; font-weight:bold; color:#d84315;">好消息：氣色可在 5 分鐘內改善！</p>
+        </div>
         <div class="report-sub-card">
-            <h4 style="color:#555;">為什麼最近氣色較差？</h4>
-            <p style="font-size:0.85rem; color:#777;">當疲勞累積時，修復速度會變慢。身體在提醒您需要更多支持。</p>
-            <h4 style="margin-top:20px; color:#555;">飲食建議</h4>
-            <div class="icon-item"><span>🥦</span> 深綠色蔬菜：支持細胞更新</div>
-            <div class="icon-item"><span>🐟</span> Omega-3 食物：調節發炎反應</div>
-            <div class="icon-item"><span>🍊</span> 維生素 C 水果：支持膠原生成</div>
-            <div class="icon-item"><span>🥜</span> 堅果全穀類：提供代謝微量元素</div>
+            <p><b>Step 1：臉部按摩 (2分鐘)</b></p>
+            <div style="height:80px; background:#f9f9f9; border-radius:12px; line-height:80px; text-align:center; color:#ccc;">示意教學動畫區</div>
+            <p style="margin-top:15px;"><b>Step 2：穴位按壓 (1分鐘)</b></p>
+            <div style="height:80px; background:#f9f9f9; border-radius:12px; line-height:80px; text-align:center; color:#ccc;">示意教學動畫區</div>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <div id="step-b-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">深度問題偵測</h2>
+        <div class="photo-container"><img class="captured-photo-sync"><div class="detect-box" style="top:20%; left:35%; width:30%; height:25%;"></div></div>
+        <div class="report-sub-card">
+            <div style="border-left:4px solid var(--red-status); padding-left:15px; margin-bottom:15px;">
+                <b>🚨 異常目標 A：發炎痘痘</b>
+                <span style="display:block; font-size:0.8rem; color:#666;">嚴重指數：6.8 (High) / T字部位</span>
+            </div>
+            <div style="border-left:4px solid var(--orange-status); padding-left:15px;">
+                <b>⚠️ 異常目標 B：動態細紋</b>
+                <span style="display:block; font-size:0.8rem; color:#666;">嚴重指數：6.0 (Med) / 眼尾魚尾紋</span>
+            </div>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <div id="step-c-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">生活習慣小秘訣</h2>
+        <div class="report-sub-card">
+            <h4 style="margin:0; color:#444;">為什麼最近氣色較差？</h4>
+            <p style="font-size:0.85rem; color:#666; line-height:1.7; margin-top:10px;">疲勞持續累積時，新陳代謝與修復速度會放慢。身體在提醒您需要更多支持。 </p>
+        </div>
+        <div class="report-sub-card">
+            <h4 style="margin:0; color:#444; margin-bottom:15px;">飲食補充建議</h4>
+            <div class="icon-item"><span>🥦</span> <b>深綠色蔬菜</b></div>
+            <div class="icon-item"><span>🐟</span> <b>Omega-3 食物</b></div>
+            <div class="icon-item"><span>🍊</span> <b>維生素 C 水果</b></div>
+            <div class="icon-item"><span>🥜</span> <b>堅果與全穀類</b></div>
         </div>
         <button class="btn-gold" onclick="switchStep('step-c-detail', 'step-3')">返回報告總覽</button>
     </div>
 
-    <div id="step-a-detail" class="step"><h2 style="text-align:center; color:var(--gold);">A. 氣色詳情</h2><button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button></div>
-    <div id="step-b-detail" class="step"><h2 style="text-align:center; color:var(--gold);">B. 數據詳情</h2><button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button></div>
+    <div id="step-d-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">智慧選品詳情</h2>
+        <div class="report-sub-card">
+            <p>針對您的膚況，推薦使用 <b>理膚寶水 Duo+</b>。含水楊酸與專利成分，有效改善粉刺與紅腫問題。</p>
+        </div>
+        <button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回報告總覽</button>
+    </div>
 </div>
 
 <div id="export-container">
-    <div style="border-radius: 25px; overflow: hidden;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
-    <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px;">
-        <h2 style="color:var(--gold); margin:0; font-weight: 300;">SKIN ANALYSIS</h2>
-        <p id="export-user-name" style="color: #999; font-size: 14px; margin: 5px 0;"></p>
-        <hr style="border:0; border-top:1px solid #f5f5f5; margin: 20px 0;">
-        <canvas id="exportChart" width="250" height="250"></canvas>
-    </div>
+    <div style="border-radius: 20px; overflow: hidden;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+    <div style="padding: 30px; display: flex; flex-direction: column; justify-content: center;"><h2 style="color:var(--gold); margin:0; font-weight:300;">SKIN ANALYSIS</h2><canvas id="exportChart" width="250" height="250"></canvas></div>
 </div>
 
 <script>
     const video = document.getElementById('video');
-    const photo = document.getElementById('captured-photo');
+    const photoMain = document.getElementById('captured-photo');
+    const syncPhotos = document.querySelectorAll('.captured-photo-sync');
+    const scrollBox = document.getElementById('scroll-box');
     let userName = "訪客";
 
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) liff.getProfile().then(p => { 
-            userName = p.displayName;
-            document.getElementById('user-name-display').innerText = userName + "，歡迎回來"; 
-        });
+        if (liff.isLoggedIn()) liff.getProfile().then(p => { userName = p.displayName; document.getElementById('user-name-display').innerText = userName + "，歡迎回來"; });
     });
 
-    // 豪華金粉特效
     const createSparkle = (x, y) => {
-        const sparkle = document.createElement('div');
-        sparkle.className = 'sparkle';
-        const size = Math.random() * 4 + 2;
-        sparkle.style.width = size + 'px'; sparkle.style.height = size + 'px';
-        sparkle.style.left = x + 'px'; sparkle.style.top = y + 'px';
-        sparkle.style.setProperty('--mx', (Math.random()-0.5)*150+'px');
-        sparkle.style.setProperty('--my', (Math.random()-0.5)*150+'px');
-        document.getElementById('sparkle-container').appendChild(sparkle);
-        setTimeout(() => sparkle.remove(), 1000);
+        const s = document.createElement('div'); s.className = 'sparkle';
+        const size = Math.random() * 4 + 2; s.style.width = size + 'px'; s.style.height = size + 'px';
+        s.style.left = x + 'px'; s.style.top = y + 'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*150+'px'); s.style.setProperty('--my', (Math.random()-0.5)*150+'px');
+        document.getElementById('sparkle-container').appendChild(s); setTimeout(() => s.remove(), 1000);
     };
     document.addEventListener('mousemove', e => createSparkle(e.clientX, e.clientY));
     document.addEventListener('touchmove', e => createSparkle(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
 
     async function grantAndStart() {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = stream;
-        video.play();
-        switchStep('step-0', 'step-1');
+        try { const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); video.srcObject = stream; video.play(); switchStep('step-0', 'step-1'); } catch(e) { alert("請開啟相機"); }
     }
 
     function triggerCapture() {
-        const c = document.createElement('canvas');
-        c.width = video.videoWidth; c.height = video.videoHeight;
-        c.getContext('2d').drawImage(video, 0, 0);
-        photo.src = c.toDataURL('image/png');
-        switchStep('step-1', 'step-2');
-        if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        document.getElementById('global-flash').classList.add('flash-active');
+        const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+        c.getContext('2d').drawImage(video, 0, 0); const data = c.toDataURL('image/png');
+        photoMain.src = data; syncPhotos.forEach(p => p.src = data);
+        setTimeout(() => { document.getElementById('global-flash').classList.remove('flash-active'); switchStep('step-1', 'step-2'); if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop()); }, 300);
     }
 
-    function showFinalReport() {
-        switchStep('step-2', 'step-3');
-        setTimeout(initCharts, 600);
-    }
+    function showFinalReport() { switchStep('step-2', 'step-3'); setTimeout(initCharts, 600); }
 
     function switchStep(outId, inId) {
-        document.getElementById(outId).style.display = 'none';
+        const outE = document.getElementById(outId);
         const inE = document.getElementById(inId);
-        inE.style.display = 'block';
-        setTimeout(() => inE.style.opacity = '1', 50);
+        outE.style.opacity = '0';
+        setTimeout(() => {
+            outE.style.display = 'none';
+            inE.style.display = 'block';
+            scrollBox.scrollTop = 0; // 自動置頂
+            setTimeout(() => { inE.style.opacity = '1'; }, 50);
+        }, 400);
     }
 
     function initCharts() {
-        const cfg = {
-            type: 'radar',
-            data: {
-                labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
-                datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.1)', borderColor: '#d4a373', borderWidth: 1, pointRadius: 2, pointBackgroundColor: '#d4a373' }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } }
-        };
-        new Chart(document.getElementById('skinChart'), cfg);
-        new Chart(document.getElementById('exportChart'), cfg);
+        const cfg = { type: 'radar', data: { labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'], datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.1)', borderColor: '#d4a373', borderWidth: 1 }] }, options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } } };
+        new Chart(document.getElementById('skinChart'), cfg); new Chart(document.getElementById('exportChart'), cfg);
     }
 
     function generateSquareImage() {
-        document.getElementById('export-photo').src = photo.src;
-        document.getElementById('export-user-name').innerText = "Client: " + userName;
-        html2canvas(document.getElementById('export-container'), { scale: 2, backgroundColor: "#ffffff" }).then(cvs => {
-            const link = document.createElement('a');
-            link.download = 'MySkinReport.png'; link.href = cvs.toDataURL(); link.click();
-            alert("報告小卡已儲存。");
+        document.getElementById('export-photo').src = photoMain.src;
+        html2canvas(document.getElementById('export-container'), { scale: 2 }).then(cvs => {
+            const link = document.createElement('a'); link.download = 'MySkinReport.png'; link.href = cvs.toDataURL(); link.click();
         });
     }
 </script>
