@@ -8,133 +8,131 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4a373; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; --green-soft: #8eb09b; }
-        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; }
+        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; }
+        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; touch-action: none; }
         
-        /* 閃光燈 */
-        #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
-        .flash-active { animation: screenFlash 0.3s ease-out; }
-        @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-
         /* 亮粉特效 */
-        .sparkle { position: fixed; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; pointer-events: none; z-index: 10000; animation: fly 1s forwards; }
-        @keyframes fly { 0% { opacity: 1; transform: scale(1); } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
+        .sparkle { position: fixed; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; box-shadow: 0 0 5px var(--shiny-gold); animation: glitter 1s forwards ease-out; }
+        @keyframes glitter { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 20% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { transform: translate(var(--mx), var(--my)) scale(0) rotate(360deg); opacity: 0; } }
 
-        .card { 
-            background: var(--white-glass); border-radius: 30px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 92%; max-width: 450px; 
-            max-height: 90vh; position: relative; overflow-y: auto; 
-            display: flex; flex-direction: column; padding: 25px; box-sizing: border-box; z-index: 10;
-        }
+        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); z-index: 10; }
         .step { width: 100%; display: none; opacity: 0; transition: opacity 0.5s ease; }
         .visible { display: block; opacity: 1; }
         
-        .photo-container { width: 100%; height: 250px; background: #000; border-radius: 20px; overflow: hidden; border: 2px solid var(--gold); margin-bottom: 20px; }
+        .photo-container { width: 100%; height: 260px; background: #f0f0f0; border-radius: 25px; overflow: hidden; border: 1px solid var(--accent); margin-bottom: 20px; }
         video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
 
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 14px; border-radius: 15px; cursor: pointer; width: 100%; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
-        .btn-detail { background: var(--accent); color: #8a6d3b; border: none; padding: 8px 15px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; font-weight: bold; width: 100%; }
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; letter-spacing: 1px; }
+        .btn-detail-link { background: none; border: none; color: var(--gold); font-size: 0.8rem; cursor: pointer; padding: 0; margin-top: 12px; font-weight: bold; text-decoration: underline; }
         
-        .report-sub-card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); text-align: left; }
-        .tag { display: inline-block; padding: 5px 12px; border-radius: 15px; background: var(--accent); font-size: 12px; margin: 3px; color: #8a6d3b; font-weight: 500; }
+        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(212, 163, 115, 0.1); }
+        .tag { display: inline-block; padding: 5px 12px; border-radius: 12px; background: #fdf6ec; font-size: 11px; margin: 2px; color: #b08d57; font-weight: 500; }
         
-        label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--gold); margin-top: 5px; background: white; }
+        label { font-weight: bold; color: var(--gold); display: block; margin-top: 15px; font-size: 0.85rem; }
+        select { width: 100%; padding: 14px; border-radius: 15px; border: 1px solid #eee; margin-top: 8px; background: white; outline: none; }
+        
+        .icon-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
+        .icon-item span { margin-right: 10px; font-size: 1.2rem; }
 
-        #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     </style>
 </head>
 <body>
 
-<div id="global-flash"></div>
 <div id="sparkle-container"></div>
 
-<div class="card" id="main-ui-container">
+<div class="card">
     <div id="step-0" class="step visible">
-        <h2 style="text-align:center; color: var(--gold); margin-top: 20px;">AI 美肌實驗室</h2>
-        <div style="text-align:center; margin: 30px 0;">
-            <p id="user-name-display" style="font-size: 1.1rem;">訪客，歡迎回來</p>
-            <p style="color:#888;">請開啟您的專屬膚況掃描</p>
+        <h2 style="text-align:center; color: var(--gold); font-weight: 300; letter-spacing: 4px;">AI 美肌實驗室</h2>
+        <div style="text-align:center; margin: 40px 0;">
+            <p id="user-name-display" style="font-size: 1rem; color: #777;">訪客，歡迎回來</p>
+            <p style="color:#bbb; font-size: 0.75rem;">模擬相機串流中...</p>
         </div>
-        <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
+        <button class="btn-gold" onclick="grantAndStart()">開始分析</button>
     </div>
 
     <div id="step-1" class="step">
-        <h3 style="color: var(--gold); text-align:center;">請對準拍攝</h3>
+        <h3 style="color: var(--gold); text-align:center; font-weight: 300;">請正對鏡頭拍攝</h3>
         <div class="photo-container"><video id="video" playsinline></video></div>
-        <button class="btn-gold" onclick="triggerCapture()">📷 拍照分析</button>
+        <button class="btn-gold" onclick="triggerCapture()">擷取影像</button>
     </div>
 
     <div id="step-2" class="step">
-        <h2 style="color: var(--gold); text-align:center;">補充資訊</h2>
+        <h2 style="color: var(--gold); text-align:center; font-weight: 300;">分析設置</h2>
         <label>膚質類型</label>
         <select id="user-skin"><option>混合性</option><option>油性</option><option>乾性</option></select>
         <label>年齡區間</label>
         <select id="user-age"><option>20-30</option><option>31-40</option><option>41+</option></select>
-        <button class="btn-gold" onclick="showFinalReport()" style="margin-top: 30px;">生成報告</button>
+        <button class="btn-gold" onclick="showFinalReport()">查看報告</button>
     </div>
 
     <div id="step-3" class="step">
-        <h2 style="text-align: center; margin-bottom: 15px;">AI 分析報告</h2>
+        <h2 style="text-align: center; font-weight: 300; color: var(--gold);">AI 分析報告</h2>
         <div class="photo-container"><img id="captured-photo"></div>
         
-        <div class="report-sub-card" style="background: #fff0eb;">
-            <h3>A. 氣色急救站</h3>
-            <p>今日活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
-            <p>💡 急救行動：1. 多喝水 2. 保濕面膜</p>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-a-detail')">查看 A 區細節 →</button>
+        <div class="report-sub-card" style="background: #fffcf9;">
+            <h4 style="margin:0;">A. 氣色急救站</h4>
+            <p style="font-size: 0.9rem; margin: 10px 0;">今日活力指數: <strong>78</strong> <span class="tag">狀態不佳</span></p>
+            <p style="font-size: 0.85rem; color:#666;">💡 急救行動：1. 多喝水 2. 保濕面膜</p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-a-detail')">查看詳情 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h3>B. 深度問題偵測</h3>
-            <canvas id="skinChart" style="max-height:200px;"></canvas>
-            <p>⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-b-detail')">查看 B 區細節 →</button>
+            <h4 style="margin:0;">B. 深度問題偵測</h4>
+            <canvas id="skinChart" style="margin: 15px 0;"></canvas>
+            <p style="font-size: 0.85rem;">⚠️ 主要問題：<strong>發炎痘痘 (6.8分)</strong></p>
+            <p style="font-size: 0.8rem; color:#888;">主要位置：T字部位</p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-b-detail')">數據細節 →</button>
         </div>
 
         <div class="report-sub-card">
-            <h3>C. 成分處方籤</h3>
-            <div class="tag">水楊酸 (代謝油脂)</div>
-            <div class="tag">維生素 B5 (舒緩修復)</div>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-c-detail')">生活習慣小秘訣 →</button>
-        </div>
-
-        <div class="report-sub-card">
-            <h3>D. 智慧選品</h3>
-            <div style="border-left: 4px solid var(--gold); padding-left: 10px;">
-                <p><strong>理膚寶水 Duo+</strong></p>
-                <p style="color:var(--gold); font-weight:bold;">匹配度：94%</p>
+            <h4 style="margin:0;">C. 成分處方籤</h4>
+            <div style="margin-top:10px;">
+                <span class="tag">水楊酸 (代謝油脂)</span>
+                <span class="tag">維生素 B5 (舒緩修復)</span>
             </div>
-            <button class="btn-detail" onclick="switchStep('step-3', 'step-d-detail')">查看推薦詳情 →</button>
+            <p style="font-size:0.75rem; color:#aaa; margin-top:8px;">*注意：A醇類建議夜間使用</p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-c-detail')">生活小秘訣 →</button>
         </div>
 
-        <button class="btn-gold" style="background: #5cb85c;" onclick="generateSquareImage()">💾 儲存檢測小卡</button>
-        <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
+        <div class="report-sub-card">
+            <h4 style="margin:0;">D. 智慧選品</h4>
+            <div style="border-left: 3px solid var(--gold); padding-left: 10px; margin-top:10px;">
+                <p style="font-weight: bold; font-size:0.9rem;">理膚寶水 Effaclar DUO+</p>
+                <p style="color: var(--gold); font-size: 1.1rem; font-weight: bold; margin: 5px 0;">匹配度：94%</p>
+                <p style="font-size: 0.75rem; color:#888;">根據規則：含 B5 + 混合肌</p>
+                <button class="btn-gold" style="font-size:0.8rem; padding:10px;" onclick="window.open('https://www.google.com/search?q=Effaclar+DUO%2B', '_blank')">前往購買 ($1,080)</button>
+            </div>
+        </div>
+
+        <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
+        <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
     </div>
 
     <div id="step-c-detail" class="step">
-        <h2 style="text-align:center; color:var(--gold);">生活習慣小秘訣</h2>
+        <h2 style="text-align:center; color:var(--gold); font-weight: 300;">生活小秘訣</h2>
         <div class="report-sub-card">
-            <h4>為什麼最近氣色容易下降？</h4>
-            <p style="font-size:0.9rem; color:#666;">疲勞累積時，身體優先供給能量給基本運作。這並非異常，而是身體在提醒您需要支持。</p>
-            <h4 style="margin-top:15px;">飲食建議</h4>
-            <p style="font-size:0.9rem;">🥦 深綠色蔬菜、🐟 Omega-3 食物、🍊 維生素 C 水果</p>
+            <h4 style="color:#555;">為什麼最近氣色較差？</h4>
+            <p style="font-size:0.85rem; color:#777;">當疲勞累積時，修復速度會變慢。身體在提醒您需要更多支持。</p>
+            <h4 style="margin-top:20px; color:#555;">飲食建議</h4>
+            <div class="icon-item"><span>🥦</span> 深綠色蔬菜：支持細胞更新</div>
+            <div class="icon-item"><span>🐟</span> Omega-3 食物：調節發炎反應</div>
+            <div class="icon-item"><span>🍊</span> 維生素 C 水果：支持膠原生成</div>
+            <div class="icon-item"><span>🥜</span> 堅果全穀類：提供代謝微量元素</div>
         </div>
         <button class="btn-gold" onclick="switchStep('step-c-detail', 'step-3')">返回報告總覽</button>
     </div>
 
-    <div id="step-a-detail" class="step"><h2 style="text-align:center;">A 區詳情</h2><button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回</button></div>
-    <div id="step-b-detail" class="step"><h2 style="text-align:center;">B 區詳情</h2><button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回</button></div>
-    <div id="step-d-detail" class="step"><h2 style="text-align:center;">D 區詳情</h2><button class="btn-gold" onclick="switchStep('step-d-detail', 'step-3')">返回</button></div>
+    <div id="step-a-detail" class="step"><h2 style="text-align:center; color:var(--gold);">A. 氣色詳情</h2><button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button></div>
+    <div id="step-b-detail" class="step"><h2 style="text-align:center; color:var(--gold);">B. 數據詳情</h2><button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button></div>
 </div>
 
 <div id="export-container">
-    <div style="border-radius: 20px; overflow: hidden; height: 100%;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+    <div style="border-radius: 25px; overflow: hidden;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
     <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px;">
-        <h2 style="color:var(--gold); margin:0;">AI 肌膚分析報告</h2>
-        <p id="export-user-name" style="font-weight:bold;"></p>
-        <hr style="border:0.5px solid #eee; margin:15px 0;">
-        <p>今日活力指數: <strong>78</strong></p>
+        <h2 style="color:var(--gold); margin:0; font-weight: 300;">SKIN ANALYSIS</h2>
+        <p id="export-user-name" style="color: #999; font-size: 14px; margin: 5px 0;"></p>
+        <hr style="border:0; border-top:1px solid #f5f5f5; margin: 20px 0;">
         <canvas id="exportChart" width="250" height="250"></canvas>
     </div>
 </div>
@@ -144,7 +142,6 @@
     const photo = document.getElementById('captured-photo');
     let userName = "訪客";
 
-    // LIFF 初始化
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
         if (liff.isLoggedIn()) liff.getProfile().then(p => { 
             userName = p.displayName;
@@ -152,18 +149,20 @@
         });
     });
 
-    // 亮粉特效實作
-    document.addEventListener('mousemove', e => spawn(e.clientX, e.clientY));
-    document.addEventListener('touchmove', e => spawn(e.touches[0].clientX, e.touches[0].clientY), {passive: true});
-    function spawn(x, y) {
-        const s = document.createElement('div');
-        s.className = 'sparkle';
-        s.style.left = x + 'px'; s.style.top = y + 'px';
-        s.style.setProperty('--mx', (Math.random()-0.5)*100+'px');
-        s.style.setProperty('--my', (Math.random()-0.5)*100+'px');
-        document.getElementById('sparkle-container').appendChild(s);
-        setTimeout(() => s.remove(), 1000);
-    }
+    // 豪華金粉特效
+    const createSparkle = (x, y) => {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        const size = Math.random() * 4 + 2;
+        sparkle.style.width = size + 'px'; sparkle.style.height = size + 'px';
+        sparkle.style.left = x + 'px'; sparkle.style.top = y + 'px';
+        sparkle.style.setProperty('--mx', (Math.random()-0.5)*150+'px');
+        sparkle.style.setProperty('--my', (Math.random()-0.5)*150+'px');
+        document.getElementById('sparkle-container').appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 1000);
+    };
+    document.addEventListener('mousemove', e => createSparkle(e.clientX, e.clientY));
+    document.addEventListener('touchmove', e => createSparkle(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
 
     async function grantAndStart() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -173,16 +172,12 @@
     }
 
     function triggerCapture() {
-        document.getElementById('global-flash').classList.add('flash-active');
         const c = document.createElement('canvas');
         c.width = video.videoWidth; c.height = video.videoHeight;
         c.getContext('2d').drawImage(video, 0, 0);
         photo.src = c.toDataURL('image/png');
-        setTimeout(() => {
-            document.getElementById('global-flash').classList.remove('flash-active');
-            switchStep('step-1', 'step-2');
-            video.srcObject.getTracks().forEach(t => t.stop());
-        }, 300);
+        switchStep('step-1', 'step-2');
+        if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
     }
 
     function showFinalReport() {
@@ -191,38 +186,32 @@
     }
 
     function switchStep(outId, inId) {
-        const outE = document.getElementById(outId);
+        document.getElementById(outId).style.display = 'none';
         const inE = document.getElementById(inId);
-        outE.style.opacity = '0';
-        setTimeout(() => {
-            outE.classList.remove('visible');
-            inE.classList.add('visible');
-            setTimeout(() => { inE.style.opacity = '1'; }, 50);
-        }, 500);
+        inE.style.display = 'block';
+        setTimeout(() => inE.style.opacity = '1', 50);
     }
 
     function initCharts() {
-        const config = {
+        const cfg = {
             type: 'radar',
             data: {
                 labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
-                datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.2)', borderColor: '#d4a373' }]
+                datasets: [{ data: [8, 5, 4, 6, 7], backgroundColor: 'rgba(212, 163, 115, 0.1)', borderColor: '#d4a373', borderWidth: 1, pointRadius: 2, pointBackgroundColor: '#d4a373' }]
             },
             options: { plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false }, min: 0 } } }
         };
-        new Chart(document.getElementById('skinChart'), config);
-        new Chart(document.getElementById('exportChart'), config);
+        new Chart(document.getElementById('skinChart'), cfg);
+        new Chart(document.getElementById('exportChart'), cfg);
     }
 
     function generateSquareImage() {
         document.getElementById('export-photo').src = photo.src;
-        document.getElementById('export-user-name').innerText = "訪客: " + userName;
-        html2canvas(document.getElementById('export-container'), { scale: 2 }).then(cvs => {
+        document.getElementById('export-user-name').innerText = "Client: " + userName;
+        html2canvas(document.getElementById('export-container'), { scale: 2, backgroundColor: "#ffffff" }).then(cvs => {
             const link = document.createElement('a');
-            link.download = 'MySkinCard.png';
-            link.href = cvs.toDataURL();
-            link.click();
-            alert("檢測小卡已儲存至您的相簿！");
+            link.download = 'MySkinReport.png'; link.href = cvs.toDataURL(); link.click();
+            alert("報告小卡已儲存。");
         });
     }
 </script>
