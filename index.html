@@ -3,46 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 肌膚實驗室</title>
+    <title>AI 肌膚實驗室 - 完整華麗版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4a373; --white-glass: rgba(255, 255, 255, 0.95); }
+        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); }
         body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; }
-        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); overflow-y: auto; }
-        .step { width: 100%; display: none; opacity: 0; transition: opacity 0.5s; }
+        .sparkle { position: fixed; width: 4px; height: 4px; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; animation: glitter 1s forwards ease-out; }
+        @keyframes glitter { 0% { transform: scale(0); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
+        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 90vh; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); overflow-y: auto; text-align: center; }
+        .step { width: 100%; display: none; opacity: 0; transition: 0.5s; }
         .visible { display: block; opacity: 1; }
-        .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; }
+        .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; position: relative; }
         video, #captured-photo { width: 100%; height: 100%; object-fit: cover; }
         video { transform: scaleX(-1); }
         .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; }
+        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); text-align: left; }
+        #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
+        .flash-active { animation: screenFlash 0.3s ease-out; }
+        @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        #export-container { position: absolute; left: -9999px; width: 500px; height: 500px; background: white; padding: 20px; display: flex; }
     </style>
 </head>
 <body>
+<div id="global-flash"></div>
 <div class="card">
     <div id="step-0" class="step visible">
-        <h2 style="text-align:center; color: var(--gold);">AI 美肌實驗室</h2>
-        <p id="user-name-display" style="text-align:center;">訪客，歡迎回來</p>
+        <h2 style="color: var(--gold);">AI 美肌實驗室</h2>
+        <p id="user-name-display">訪客，歡迎回來</p>
         <button class="btn-gold" onclick="grantAndStart()">開始檢測</button>
     </div>
+
     <div id="step-1" class="step">
-        <h3 style="color: var(--gold); text-align:center;">請對準拍攝</h3>
+        <h3 style="color: var(--gold);">請對準拍攝</h3>
         <div class="photo-container"><video id="video" playsinline muted></video></div>
         <button class="btn-gold" onclick="triggerCapture()">📷 擷取影像</button>
     </div>
+
     <div id="step-2" class="step">
-        <h2 style="color: var(--gold); text-align:center;">分析中</h2>
-        <button id="analyze-btn" class="btn-gold" onclick="startAIAnalysis()">確認並開始分析</button>
-    </div>
-    <div id="step-3" class="step">
-        <h2 style="text-align:center; color: var(--gold);">分析報告</h2>
-        <div class="photo-container"><img id="captured-photo"></div>
-        <div id="result-box" style="background:white; padding:15px; border-radius:15px; margin-bottom:10px;">
-            <p id="v-score" style="font-weight:bold; color:var(--gold);"></p>
-            <p id="ai-issue"></p>
-            <canvas id="skinChart"></canvas>
+        <h2 style="color: var(--gold);">補充資訊</h2>
+        <div style="text-align:left; margin-top:20px;">
+            <label style="font-weight:bold; color:var(--gold);">膚質類型</label>
+            <select id="user-skin" style="width:100%; padding:14px; border-radius:15px; border:1px solid #eee; margin-top:8px;">
+                <option>混合性</option><option>油性</option><option>乾性</option>
+            </select>
         </div>
-        <button class="btn-gold" onclick="location.reload()">重新檢測</button>
+        <button id="analyze-btn" class="btn-gold" onclick="startAIAnalysis()" style="margin-top:40px;">確認並開始分析</button>
+    </div>
+
+    <div id="step-3" class="step">
+        <h2 style="color: var(--gold);">AI 分析報告</h2>
+        <div class="photo-container"><img id="captured-photo"></div>
+        <div class="report-sub-card" style="display: flex; align-items: center; gap: 15px;">
+            <div id="v-circle" style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: conic-gradient(var(--gold) 0%, #eee 0);">
+                <div style="background: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;" id="v-score">--</div>
+            </div>
+            <div id="ai-tip" style="font-size: 0.85rem; color: #666;"></div>
+        </div>
+        <div class="report-sub-card">
+            <h4>深度數據偵測</h4>
+            <canvas id="skinChart"></canvas>
+            <p id="ai-issue" style="font-size: 0.85rem; margin-top:10px; color: var(--gold); font-weight: bold;"></p>
+        </div>
+        <button class="btn-gold" style="background: #8eb09b;" onclick="downloadReport()">💾 儲存報告小卡</button>
+        <button class="btn-gold" onclick="location.reload()" style="background:#999;">重新檢測</button>
+    </div>
+</div>
+
+<div id="export-container">
+    <img id="export-img" style="width:250px; height:460px; object-fit:cover; border-radius:15px;">
+    <div style="flex:1; padding-left:20px; display:flex; flex-direction:column; justify-content:center;">
+        <h2 style="color:var(--gold);">SKIN REPORT</h2>
+        <canvas id="exportChart" width="200" height="200"></canvas>
     </div>
 </div>
 
@@ -52,18 +85,19 @@
     let base64Image = "";
 
     liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) liff.getProfile().then(p => document.getElementById('user-name-display').innerText = p.displayName + "，歡迎");
-    }).catch(e => console.log("LIFF Skip"));
+        if (liff.isLoggedIn()) liff.getProfile().then(p => document.getElementById('user-name-display').innerText = p.displayName + "，歡迎回來");
+    }).catch(e => console.log("LIFF Init Skip"));
 
     async function grantAndStart() {
         try {
-            const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-            video.srcObject = s; video.play();
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream; video.play();
             switchStep('step-0', 'step-1');
-        } catch(e) { alert("請授權相機"); }
+        } catch(e) { alert("請授權相機權限"); }
     }
 
     function triggerCapture() {
+        document.getElementById('global-flash').classList.add('flash-active');
         const c = document.createElement('canvas');
         c.width = video.videoWidth; c.height = video.videoHeight;
         const ctx = c.getContext('2d');
@@ -71,8 +105,12 @@
         ctx.drawImage(video, 0, 0, c.width, c.height);
         base64Image = c.toDataURL('image/jpeg', 0.8).split(',')[1];
         document.getElementById('captured-photo').src = c.toDataURL('image/jpeg');
-        switchStep('step-1', 'step-2');
-        if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        document.getElementById('export-img').src = c.toDataURL('image/jpeg');
+        setTimeout(() => {
+            switchStep('step-1', 'step-2');
+            if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+            document.getElementById('global-flash').classList.remove('flash-active');
+        }, 300);
     }
 
     async function startAIAnalysis() {
@@ -81,18 +119,36 @@
         try {
             const res = await fetch(`${API_BASE}/api/analyze_skin`, {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true" 
-                },
-                body: JSON.stringify({ image: base64Image })
+                headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+                body: JSON.stringify({ image: base64Image, skin_type: document.getElementById('user-skin').value })
             });
             const data = await res.json();
-            document.getElementById('v-score').innerText = "肌膚活力分數: " + data.vitality;
-            document.getElementById('ai-issue').innerText = "建議：" + data.tip;
-            initCharts(data.scores);
+            updateUI(data);
             switchStep('step-2', 'step-3');
-        } catch(e) { alert("連線超時"); btn.disabled = false; }
+        } catch(e) { alert("連線超時，請檢查 ngrok"); btn.disabled = false; }
+    }
+
+    function updateUI(data) {
+        document.getElementById('v-score').innerText = data.vitality;
+        document.getElementById('v-circle').style.background = `conic-gradient(var(--gold) ${data.vitality}%, #eee 0)`;
+        document.getElementById('ai-tip').innerText = data.tip;
+        document.getElementById('ai-issue').innerText = "⚠️ 主要問題：" + data.main_issue;
+        initCharts(data.scores);
+    }
+
+    function initCharts(scores) {
+        const cfg = { type: 'radar', data: { labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'], datasets: [{ data: scores, borderColor: '#d4a373', backgroundColor: 'rgba(212,163,115,0.1)' }] }, options: { scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } } };
+        new Chart(document.getElementById('skinChart'), cfg);
+        new Chart(document.getElementById('exportChart'), cfg);
+    }
+
+    function downloadReport() {
+        html2canvas(document.getElementById('export-container')).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'SkinReport.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
     }
 
     function switchStep(outId, inId) {
@@ -102,16 +158,13 @@
         setTimeout(() => next.classList.add('visible'), 50);
     }
 
-    function initCharts(scores) {
-        new Chart(document.getElementById('skinChart'), {
-            type: 'radar',
-            data: {
-                labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
-                datasets: [{ data: scores, borderColor: '#d4a373', backgroundColor: 'rgba(212,163,115,0.1)' }]
-            },
-            options: { scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } }
-        });
-    }
+    document.addEventListener('mousemove', e => {
+        const s = document.createElement('div'); s.className = 'sparkle';
+        s.style.left = e.clientX+'px'; s.style.top = e.clientY+'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*150+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*150+'px');
+        document.body.appendChild(s); setTimeout(() => s.remove(), 800);
+    });
 </script>
 </body>
 </html>
