@@ -8,28 +8,25 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; --red-status: #ff5252; --orange-status: #ff9800; --green-status: #4caf50; }
-        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; touch-action: none; }
-        .sparkle { position: fixed; width: 4px; height: 4px; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; box-shadow: 0 0 5px var(--shiny-gold); animation: glitter 1s forwards ease-out; }
-        @keyframes glitter { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 20% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { transform: translate(var(--mx), var(--my)) scale(0) rotate(360deg); opacity: 0; } }
-        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); z-index: 10; scroll-behavior: smooth; }
-        .step { width: 100%; display: none; opacity: 0; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; }
+        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; }
+        .sparkle { position: fixed; width: 4px; height: 4px; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; animation: glitter 1s forwards ease-out; }
+        @keyframes glitter { 0% { transform: scale(0); opacity: 1; } 100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; } }
+        .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); }
+        .step { width: 100%; display: none; opacity: 0; transition: opacity 0.5s; }
         .visible { display: block; opacity: 1; }
-        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(212, 163, 115, 0.1); text-align: left; }
-        .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; position: relative; }
+        .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); text-align: left; }
+        .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        #captured-photo, .captured-photo-sync { width: 100%; height: 100%; object-fit: cover; }
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; }
-        .btn-gold:disabled { background: #ccc; }
+        #captured-photo { width: 100%; height: 100%; object-fit: cover; }
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; }
         #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
         .flash-active { animation: screenFlash 0.3s ease-out; }
         @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-        #export-container { position: absolute; left: -9999px; width: 600px; height: 600px; background: #fff; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
     </style>
 </head>
 <body>
 <div id="global-flash"></div>
-<div id="sparkle-container"></div>
 <div class="card" id="scroll-box">
     <div id="step-0" class="step visible">
         <h2 style="text-align:center; color: var(--gold); margin-top: 20px;">AI 美肌實驗室</h2>
@@ -65,32 +62,26 @@
             <canvas id="skinChart" style="max-height: 160px;"></canvas>
             <p id="ai-issue" style="font-size: 0.85rem; margin-top:10px;">正在讀取 AI 數據...</p>
         </div>
-        <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
     </div>
 </div>
 
-<div id="export-container">
-    <div style="border-radius: 20px; overflow: hidden;"><img id="export-photo" style="width:100%; height:100%; object-fit:cover;"></div>
-    <div style="padding: 30px;"><h2 style="color:var(--gold);">SKIN REPORT</h2><canvas id="exportChart" width="250" height="250"></canvas></div>
-</div>
-
 <script>
+    const API_BASE = "https://engineeringly-tripinnate-bette.ngrok-free.dev"; 
     const video = document.getElementById('video');
     const photoMain = document.getElementById('captured-photo');
     let base64Image = "";
-    
-    // --- [ 1. 填入大師目前的 ngrok 網址 ] ---
-    const API_BASE = "https://engineeringly-tripinnate-bette.ngrok-free.dev"; 
 
-    // --- [ 2. LIFF 初始化 (加上錯誤捕捉) ] ---
-    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
-        if (liff.isLoggedIn()) {
-            liff.getProfile().then(p => { 
-                document.getElementById('user-name-display').innerText = p.displayName + "，歡迎回來"; 
-            });
-        }
-    }).catch(err => console.log("LIFF Init Skip:", err));
+    // LIFF 初始化
+    if (window.liff) {
+        liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
+            if (liff.isLoggedIn()) {
+                liff.getProfile().then(p => { 
+                    document.getElementById('user-name-display').innerText = p.displayName + "，歡迎回來"; 
+                });
+            }
+        }).catch(err => console.error("LIFF Error:", err));
+    }
 
     async function grantAndStart() {
         try {
@@ -99,27 +90,40 @@
             video.play();
             switchStep('step-0', 'step-1');
         } catch(e) {
-            alert("請確保您的瀏覽器已允許相機存取權限！");
+            alert("請確保已授權相機權限並使用 HTTPS 瀏覽！");
         }
+    }
+
+    function triggerCapture() {
+        document.getElementById('global-flash').classList.add('flash-active');
+        const c = document.createElement('canvas');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+        const ctx = c.getContext('2d');
+        ctx.translate(c.width, 0); ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, c.width, c.height);
+        base64Image = c.toDataURL('image/jpeg', 0.8).split(',')[1];
+        photoMain.src = c.toDataURL('image/jpeg');
+        setTimeout(() => {
+            switchStep('step-1', 'step-2');
+            if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+            document.getElementById('global-flash').classList.remove('flash-active');
+        }, 300);
     }
 
     async function startAIAnalysis() {
         const btn = document.getElementById('analyze-btn');
         btn.disabled = true; btn.innerText = "⚡ AI 診斷中...";
-        
         try {
             const res = await fetch(`${API_BASE}/api/analyze_skin`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ image: base64Image, skin_type: document.getElementById('user-skin').value })
             });
-            
-            if (!res.ok) throw new Error("Server Error");
             const data = await res.json();
             updateUI(data);
             switchStep('step-2', 'step-3');
         } catch(e) {
-            alert("連線失敗！請確認 GCP 主機已執行 ngrok 且網址正確。");
+            alert("連線失敗！請檢查 ngrok 狀態。");
             btn.disabled = false; btn.innerText = "確認並開始分析";
         }
     }
@@ -132,41 +136,30 @@
         initCharts(data.scores);
     }
 
-    function triggerCapture() {
-        document.getElementById('global-flash').classList.add('flash-active');
-        const c = document.createElement('canvas'); 
-        c.width = video.videoWidth; 
-        c.height = video.videoHeight;
-        const ctx = c.getContext('2d'); 
-        ctx.translate(c.width, 0); 
-        ctx.scale(-1, 1); 
-        ctx.drawImage(video, 0, 0, c.width, c.height);
-        
-        base64Image = c.toDataURL('image/jpeg', 0.8).split(',')[1];
-        photoMain.src = c.toDataURL('image/jpeg');
-        
-        setTimeout(() => { 
-            switchStep('step-1', 'step-2'); 
-            if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop()); 
-        }, 300);
-    }
-
     function switchStep(outId, inId) {
+        document.getElementById(outId).classList.remove('visible');
         document.getElementById(outId).style.display = 'none';
-        const inE = document.getElementById(inId);
-        inE.style.display = 'block';
-        setTimeout(() => inE.style.opacity = '1', 50);
+        const next = document.getElementById(inId);
+        next.style.display = 'block';
+        setTimeout(() => next.classList.add('visible'), 50);
     }
 
-    function initCharts(scores = [5,5,5,5,5]) {
-        const cfg = { type: 'radar', data: { labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'], datasets: [{ data: scores, borderColor: '#d4a373', backgroundColor: 'rgba(212,163,115,0.1)' }] }, options: { scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } } };
-        new Chart(document.getElementById('skinChart'), cfg); 
-        new Chart(document.getElementById('exportChart'), cfg);
+    function initCharts(scores) {
+        new Chart(document.getElementById('skinChart'), {
+            type: 'radar',
+            data: {
+                labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'],
+                datasets: [{ data: scores, borderColor: '#d4a373', backgroundColor: 'rgba(212,163,115,0.1)' }]
+            },
+            options: { scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } }
+        });
     }
-    
+
     document.addEventListener('mousemove', e => {
-        const s = document.createElement('div'); s.className = 'sparkle'; s.style.left = e.clientX+'px'; s.style.top = e.clientY+'px';
-        s.style.setProperty('--mx', (Math.random()-0.5)*150+'px'); s.style.setProperty('--my', (Math.random()-0.5)*150+'px');
+        const s = document.createElement('div'); s.className = 'sparkle';
+        s.style.left = e.clientX+'px'; s.style.top = e.clientY+'px';
+        s.style.setProperty('--mx', (Math.random()-0.5)*150+'px');
+        s.style.setProperty('--my', (Math.random()-0.5)*150+'px');
         document.body.appendChild(s); setTimeout(() => s.remove(), 1000);
     });
 </script>
