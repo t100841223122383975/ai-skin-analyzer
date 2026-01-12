@@ -10,20 +10,17 @@
     <style>
         :root { --gold: #d4a373; --shiny-gold: #ffefba; --white-glass: rgba(255, 255, 255, 0.95); --accent: #f5e6d3; --red-status: #ff5252; --orange-status: #ff9800; --green-status: #4caf50; }
         body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; background: #faf9f6; overflow: hidden; touch-action: none; }
-        
         .sparkle { position: fixed; width: 4px; height: 4px; background: linear-gradient(45deg, var(--gold), var(--shiny-gold)); border-radius: 50%; pointer-events: none; z-index: 10000; box-shadow: 0 0 5px var(--shiny-gold); animation: glitter 1s forwards ease-out; }
         @keyframes glitter { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 20% { opacity: 1; transform: scale(1.2) rotate(45deg); } 100% { transform: translate(var(--mx), var(--my)) scale(0) rotate(360deg); opacity: 0; } }
-
         .card { background: var(--white-glass); border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); width: 92%; max-width: 420px; max-height: 85vh; position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; backdrop-filter: blur(15px); z-index: 10; scroll-behavior: smooth; }
-        
         .step { width: 100%; display: none; opacity: 0; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .visible { display: block; opacity: 1; }
-        
         .report-sub-card { background: white; border-radius: 22px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(212, 163, 115, 0.1); transition: transform 0.3s ease; text-align: left; }
         .photo-container { width: 100%; height: 260px; background: #000; border-radius: 25px; overflow: hidden; border: 1px solid var(--gold); margin-bottom: 20px; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
         #captured-photo, .captured-photo-sync { width: 100%; height: 100%; object-fit: cover; }
         .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn-gold:disabled { background: #ccc; }
         .btn-detail-link { background: none; border: none; color: var(--gold); font-size: 0.8rem; cursor: pointer; padding: 0; margin-top: 10px; font-weight: bold; text-decoration: underline; }
         .tag { display: inline-block; padding: 4px 10px; border-radius: 10px; background: #fdf6ec; font-size: 11px; margin: 2px; color: #b08d57; font-weight: 500; }
         #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
@@ -64,30 +61,47 @@
     <div id="step-3" class="step">
         <h2 style="text-align: center; color: var(--gold);">AI 分析報告</h2>
         <div class="photo-container"><img id="captured-photo"></div>
+        
         <div class="report-sub-card" style="background: #fffcf9; display: flex; align-items: center; gap: 15px;">
             <div id="v-circle-box" style="position: relative; width: 75px; height: 75px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
                 <div style="text-align: center;"><div id="v-score-main" style="font-size: 1.3rem; font-weight: bold;">--</div><div style="font-size: 0.45rem; color:#999;">活力指數</div></div>
             </div>
             <div style="flex-grow: 1;">
                 <h4 style="margin:0; font-size: 0.9rem;">A. 氣色狀態</h4>
-                <p id="ai-tip-main" style="font-size: 0.8rem; color: #666; margin-top: 5px;">正在診斷中...</p>
+                <p id="ai-tip-main" style="font-size: 0.8rem; color: #666; margin-top: 5px;">AI 分析中...</p>
                 <button class="btn-detail-link" onclick="switchStep('step-3', 'step-a-detail')">查看詳情建議 →</button>
             </div>
         </div>
+
         <div class="report-sub-card">
             <h4>B. 深度問題偵測</h4>
             <canvas id="skinChart" style="max-height: 160px;"></canvas>
-            <p id="ai-issue-main" style="font-size: 0.85rem; margin-top:10px;">數據計算中...</p>
+            <p id="ai-issue-main" style="font-size: 0.85rem; margin-top:10px;">計算數據中...</p>
             <button class="btn-detail-link" onclick="switchStep('step-3', 'step-b-detail')">分析細節數據 →</button>
         </div>
+
+        <div class="report-sub-card">
+            <h4>C. 生活習慣建議</h4>
+            <div id="ai-tags-container" style="margin-top:8px;"></div>
+            <p style="font-size:0.75rem; color:#aaa; margin-top:8px;">*根據 AI 分析生成</p>
+            <button class="btn-detail-link" onclick="switchStep('step-3', 'step-c-detail')">查看生活小秘訣 →</button>
+        </div>
+
         <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
     </div>
 
     <div id="step-a-detail" class="step">
-        <h2 style="text-align:center; color:var(--gold);">診斷細節</h2>
-        <div class="report-sub-card"><p id="ai-detail-text">AI 正在為您撰寫個人化建議...</p></div>
+        <h2 style="text-align:center; color:var(--gold);">氣色急救詳情</h2>
+        <div class="report-sub-card"><p id="ai-detail-tip" style="line-height:1.6;">正在讀取...</p></div>
         <button class="btn-gold" onclick="switchStep('step-a-detail', 'step-3')">返回報告總覽</button>
+    </div>
+
+    <div id="step-b-detail" class="step">
+        <h2 style="text-align:center; color:var(--gold);">深度數據分析</h2>
+        <div class="photo-container"><img class="captured-photo-sync"></div>
+        <div class="report-sub-card"><p id="ai-detail-issue"></p></div>
+        <button class="btn-gold" onclick="switchStep('step-b-detail', 'step-3')">返回報告總覽</button>
     </div>
 </div>
 
@@ -122,7 +136,7 @@
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); 
             video.srcObject = stream; video.play(); 
             switchStep('step-0', 'step-1'); 
-        } catch(e) { alert("請開啟相機並使用 HTTPS"); }
+        } catch(e) { alert("請開啟相機權限"); }
     }
 
     function triggerCapture() {
@@ -162,17 +176,32 @@
             updateUI(data);
             switchStep('step-2', 'step-3');
         } catch(e) {
-            alert("連線超時！請確定大師的金鑰有電且 ngrok 已啟動。");
+            alert("連線超時，請檢查 ngrok 狀態");
             btn.disabled = false; btn.innerText = "確認並開始分析";
         }
     }
 
     function updateUI(data) {
+        // 更新活力指數圓圈
         document.getElementById('v-score-main').innerText = data.vitality;
         document.getElementById('v-circle-box').style.background = `radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(var(--gold) ${data.vitality}%, #eee 0)`;
+        
+        // 更新主要建議與問題
         document.getElementById('ai-tip-main').innerText = "💡 建議：" + data.tip;
         document.getElementById('ai-issue-main').innerText = "⚠️ 主要問題：" + data.main_issue;
-        document.getElementById('ai-detail-text').innerText = data.tip;
+        
+        // 更新詳情頁
+        document.getElementById('ai-detail-tip').innerText = data.tip;
+        document.getElementById('ai-detail-issue').innerText = "主要問題分析：" + data.main_issue;
+        
+        // 更新標籤 (可愛的小圖示標籤)
+        const tagContainer = document.getElementById('ai-tags-container');
+        tagContainer.innerHTML = "";
+        ['保濕', '修復', '防曬'].forEach(t => {
+            const span = document.createElement('span'); span.className = 'tag'; span.innerText = t;
+            tagContainer.appendChild(span);
+        });
+
         initCharts(data.scores);
     }
 
