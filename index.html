@@ -21,7 +21,6 @@
         #captured-photo, .captured-photo-sync { width: 100%; height: 100%; object-fit: cover; }
         .btn-gold { background: var(--gold); color: white; border: none; padding: 15px; border-radius: 18px; cursor: pointer; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: 0.3s; }
         .btn-gold:disabled { background: #ccc; }
-        .tag { display: inline-block; padding: 4px 10px; border-radius: 10px; background: #fdf6ec; font-size: 11px; margin: 2px; color: #b08d57; font-weight: 500; }
         #global-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 9999; }
         .flash-active { animation: screenFlash 0.3s ease-out; }
         @keyframes screenFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
@@ -59,12 +58,12 @@
                     <div id="v-score" style="font-size: 1.3rem; font-weight: bold;">--</div>
                 </div>
             </div>
-            <div><h4 id="ai-tip" style="margin:0; font-size: 0.8rem;">分析中...</h4></div>
+            <div><h4 id="ai-tip" style="margin:0; font-size: 0.8rem;">分析完成</h4></div>
         </div>
         <div class="report-sub-card">
             <h4>深度問題偵測</h4>
             <canvas id="skinChart" style="max-height: 160px;"></canvas>
-            <p id="ai-issue" style="font-size: 0.85rem; margin-top:10px;">正在讀取數據...</p>
+            <p id="ai-issue" style="font-size: 0.85rem; margin-top:10px;">正在讀取 AI 數據...</p>
         </div>
         <button class="btn-gold" style="background: #8eb09b;" onclick="generateSquareImage()">💾 儲存報告小卡</button>
         <button class="btn-gold" onclick="location.reload()" style="background:#999; margin-top:20px;">重新檢測</button>
@@ -81,58 +80,90 @@
     const photoMain = document.getElementById('captured-photo');
     let base64Image = "";
     
-    // --- [ 填入大師的 ngrok 網址 ] ---
+    // --- [ 1. 填入大師目前的 ngrok 網址 ] ---
     const API_BASE = "https://engineeringly-tripinnate-bette.ngrok-free.dev"; 
+
+    // --- [ 2. LIFF 初始化 (加上錯誤捕捉) ] ---
+    liff.init({ liffId: "2008812290-AidCIwjS" }).then(() => {
+        if (liff.isLoggedIn()) {
+            liff.getProfile().then(p => { 
+                document.getElementById('user-name-display').innerText = p.displayName + "，歡迎回來"; 
+            });
+        }
+    }).catch(err => console.log("LIFF Init Skip:", err));
+
+    async function grantAndStart() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            video.play();
+            switchStep('step-0', 'step-1');
+        } catch(e) {
+            alert("請確保您的瀏覽器已允許相機存取權限！");
+        }
+    }
 
     async function startAIAnalysis() {
         const btn = document.getElementById('analyze-btn');
         btn.disabled = true; btn.innerText = "⚡ AI 診斷中...";
         
         try {
-            const res = await fetch(`\${API_BASE}/api/analyze_skin`, {
+            const res = await fetch(`${API_BASE}/api/analyze_skin`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ image: base64Image, skin_type: document.getElementById('user-skin').value })
             });
+            
+            if (!res.ok) throw new Error("Server Error");
             const data = await res.json();
             updateUI(data);
             switchStep('step-2', 'step-3');
-        } catch(e) { alert("連線失敗，請檢查 ngrok 狀態"); btn.disabled = false; btn.innerText = "確認並開始分析"; }
+        } catch(e) {
+            alert("連線失敗！請確認 GCP 主機已執行 ngrok 且網址正確。");
+            btn.disabled = false; btn.innerText = "確認並開始分析";
+        }
     }
 
     function updateUI(data) {
         document.getElementById('v-score').innerText = data.vitality;
-        document.getElementById('v-circle').style.background = `conic-gradient(var(--gold) \${data.vitality}%, #eee 0)`;
+        document.getElementById('v-circle').style.background = `conic-gradient(var(--gold) ${data.vitality}%, #eee 0)`;
         document.getElementById('ai-tip').innerText = data.tip;
         document.getElementById('ai-issue').innerText = "⚠️ 主要問題：" + data.main_issue;
         initCharts(data.scores);
     }
 
-    async function grantAndStart() {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = stream; video.play(); switchStep('step-0', 'step-1');
-    }
-
     function triggerCapture() {
         document.getElementById('global-flash').classList.add('flash-active');
-        const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-        const ctx = c.getContext('2d'); ctx.translate(c.width, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, c.width, c.height);
+        const c = document.createElement('canvas'); 
+        c.width = video.videoWidth; 
+        c.height = video.videoHeight;
+        const ctx = c.getContext('2d'); 
+        ctx.translate(c.width, 0); 
+        ctx.scale(-1, 1); 
+        ctx.drawImage(video, 0, 0, c.width, c.height);
+        
         base64Image = c.toDataURL('image/jpeg', 0.8).split(',')[1];
         photoMain.src = c.toDataURL('image/jpeg');
-        setTimeout(() => { switchStep('step-1', 'step-2'); if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop()); }, 300);
+        
+        setTimeout(() => { 
+            switchStep('step-1', 'step-2'); 
+            if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop()); 
+        }, 300);
     }
 
     function switchStep(outId, inId) {
         document.getElementById(outId).style.display = 'none';
-        const inE = document.getElementById(inId); inE.style.display = 'block'; inE.style.opacity = '1';
+        const inE = document.getElementById(inId);
+        inE.style.display = 'block';
+        setTimeout(() => inE.style.opacity = '1', 50);
     }
 
     function initCharts(scores = [5,5,5,5,5]) {
         const cfg = { type: 'radar', data: { labels: ['保濕', '泛紅', '毛孔', '暗沉', '痘痘'], datasets: [{ data: scores, borderColor: '#d4a373', backgroundColor: 'rgba(212,163,115,0.1)' }] }, options: { scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } } };
-        new Chart(document.getElementById('skinChart'), cfg); new Chart(document.getElementById('exportChart'), cfg);
+        new Chart(document.getElementById('skinChart'), cfg); 
+        new Chart(document.getElementById('exportChart'), cfg);
     }
     
-    // 亮粉特效
     document.addEventListener('mousemove', e => {
         const s = document.createElement('div'); s.className = 'sparkle'; s.style.left = e.clientX+'px'; s.style.top = e.clientY+'px';
         s.style.setProperty('--mx', (Math.random()-0.5)*150+'px'); s.style.setProperty('--my', (Math.random()-0.5)*150+'px');
@@ -141,5 +172,3 @@
 </script>
 </body>
 </html>
-
-
